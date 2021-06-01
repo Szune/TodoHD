@@ -95,19 +95,20 @@ namespace TodoHD
 				.Select((item,index) => new{item,index})
 				.ToList()
 				.ForEach(it => {
-						var c = 0;
-						if(editor.Item == it.index + 1)
-						{
-							sb.Append("> ");
-							c += "> ".Length;
-						}
-						sb.Append(it.item.Priority switch { Priority.Whenever => "*", Priority.Urgent => "!", _ => "-" });
-						sb.Append(' ');
-						c += 2;
-						sb.Append(it.item.Title);
-						c += it.item.Title.Length;
-						sb.AppendLine(new string(' ', Console.BufferWidth - 1 - c));
-						});
+					var c = sb.Length;
+					if(editor.Item == it.index + 1)
+					{
+						sb.Append(" >");
+					}
+					sb.Append(it.item.Priority switch {
+						Priority.Whenever => " * ",
+						Priority.Urgent => " (!) ",
+						_ => "-"
+					});
+					sb.Append(it.item.Title);
+					c = sb.Length - c;
+					sb.AppendLine(new string(' ', Console.BufferWidth - 1 - c));
+				});
 			Console.Write(sb);
 		}
 	}
