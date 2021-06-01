@@ -82,7 +82,7 @@ namespace TodoHD
 					break;
 			}
 			_tmpDescription
-				.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+				.Split(Environment.NewLine)
 				.ToList()
 				.ForEach(part =>
 					Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
