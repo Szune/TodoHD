@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace TodoHD
 {
@@ -84,19 +85,21 @@ namespace TodoHD
 				return;
 			}
 
+			var sb = new StringBuilder();
 			_item
 				.Steps
 				.Select((step,index) => new{step,index})
 				.ToList()
 				.ForEach(it => {
-						var c = 0;
-						if(_step == it.index) {
-							Console.Write("> ");
-							c += 2;
-						}
+					var c = 0;
+					if(_step == it.index) {
+						sb.Append("> ");
+						c += 2;
+					}
 					c += "[x] ".Length + it.step.Text.Length;
-					Console.WriteLine($"[{(it.step.Completed ? 'x' : ' ')}] {it.step.Text}{new string(' ', Console.BufferWidth - 1 - c)}");
+					sb.AppendLine($"[{(it.step.Completed ? 'x' : ' ')}] {it.step.Text}{new string(' ', Console.BufferWidth - 1 - c)}");
 				});
+			Console.Write(sb);
 		}
 
 		public void KeyEvent(ConsoleKey key, Editor editor)
