@@ -143,15 +143,17 @@ namespace TodoHD
 			PrintCurrent();
 		}
 
-		public void MoveItemUp()
+		private bool MoveUp(IHaveOrder current, IEnumerable<IHaveOrder> items)
 		{
 			// TODO: might want to use a more efficient data structure,
 			// possibly a mix of a hashmap and a sorted list
-			var current = GetSelectedItem();
+			// where you can correlate an id with an index
+			// and do a couple of if-checks on the previous item
+			// instead of iterating through everything every time
 			var currentOrder = current.Order;
-			var previous = GetItemsByPriority(current.Priority)
+			var next = items
 				.Where(i => i.Order < currentOrder)
-				.Aggregate(new { distance = 9999, winner = new TodoItem { Id = -1 } },
+				.Aggregate(new { distance = 9999, winner = null as IHaveOrder },
 						(acc, it) => {
 							var	dist = currentOrder - it.Order;
 							if(dist < acc.distance)
@@ -160,26 +162,22 @@ namespace TodoHD
 							}
 							return acc;
 						});
-			if(previous.winner.Id == -1)
+			if(next.winner == null)
 			{
-				return;
+				return false;
 			}
-			current.Order = previous.winner.Order;
-			previous.winner.Order = currentOrder;
-
-			Save();
-			PrintCurrent();
+			current.Order = next.winner.Order;
+			next.winner.Order = currentOrder;
+			return true;
 		}
 
-		public void MoveItemDown()
+
+		private bool MoveDown(IHaveOrder current, IEnumerable<IHaveOrder> items)
 		{
-			// TODO: might want to use a more efficient data structure,
-			// possibly a mix of a hashmap and a sorted list
-			var current = GetSelectedItem();
 			var currentOrder = current.Order;
-			var next = GetItemsByPriority(current.Priority)
+			var next = items
 				.Where(i => i.Order > currentOrder)
-				.Aggregate(new { distance = 9999, winner = new TodoItem { Id = -1 } },
+				.Aggregate(new { distance = 9999, winner = null as IHaveOrder },
 						(acc, it) => {
 							var	dist = it.Order - currentOrder;
 							if(dist < acc.distance)
@@ -188,15 +186,34 @@ namespace TodoHD
 							}
 							return acc;
 						});
-			if(next.winner.Id == -1)
+			if(next.winner == null)
 			{
-				return;
+				return false;
 			}
 			current.Order = next.winner.Order;
 			next.winner.Order = currentOrder;
+			return true;
+		}
 
-			Save();
-			PrintCurrent();
+		public void MoveItemUp()
+		{
+			var current = GetSelectedItem();
+			if(MoveUp(current, GetItemsByPriority(current.Priority)))
+			{
+				Save();
+				PrevItem();
+			}
+		}
+
+
+		public void MoveItemDown()
+		{
+			var current = GetSelectedItem();
+			if(MoveDown(current, GetItemsByPriority(current.Priority)))
+			{
+				Save();
+				NextItem();
+			}
 		}
 
 		public void NextItem()
