@@ -112,9 +112,11 @@ namespace TodoHD
 				case ConsoleKey.E:
 					editor.PushMode(new EditMode());
 					break;
+				case ConsoleKey.DownArrow:
 				case ConsoleKey.J:
 					NextStep(editor);
 					break;
+				case ConsoleKey.UpArrow:
 				case ConsoleKey.K:
 					PrevStep(editor);
 					break;

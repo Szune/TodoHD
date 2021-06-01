@@ -58,9 +58,11 @@ namespace TodoHD
 				case ConsoleKey.P:
 					editor.PrevPage();
 					break;
+				case ConsoleKey.DownArrow:
 				case ConsoleKey.J:
 					editor.NextItem();
 					break;
+				case ConsoleKey.UpArrow:
 				case ConsoleKey.K:
 					editor.PrevItem();
 					break;
