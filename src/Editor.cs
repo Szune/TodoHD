@@ -49,22 +49,29 @@ namespace TodoHD
 				var json = File.ReadAllText(_savePath);
 				var deserialized = JsonSerializer.Deserialize<Todo>(json);
 				_items = deserialized.Items.ToDictionary(i => i.Id);
-				NormalizeItemOrder();
+				NormalizeItemOrder(_items.Values);
 			}
-			catch
+			catch(FileNotFoundException)
 			{
 				File.WriteAllText(_savePath, JsonSerializer.Serialize<Todo>(new() { Items = new() }));
 			}
 		}
 
-		private void NormalizeItemOrder()
+		private void NormalizeItemOrder(IEnumerable<TodoItem> items)
 		{
-			_items
-				.Values
+			items
 				.OrderBy(i => i.Order)
 				.Select((item,index) => new { item, index })
 				.ToList()
-				.ForEach(it => it.item.Order = it.index + 1);
+				.ForEach(it => {
+						it.item.Order = it.index + 1;
+						it.item
+							.Steps?
+							.OrderBy(i => i.Order)
+							.Select((item,index) => new { item, index })
+							.ToList()
+							.ForEach(step => step.item.Order = step.index + 1);
+					});
 		}
 
 		public int ItemsPerPage => Console.BufferHeight / 5;
@@ -213,6 +220,32 @@ namespace TodoHD
 			{
 				Save();
 				NextItem();
+			}
+		}
+
+		// TODO: should probably have an id on the steps as well
+		public void MoveStepUp(IEnumerable<TodoStep> steps, TodoStep item)
+		{
+			if(steps == null)
+			{
+				return;
+			}
+			if(MoveUp(item, steps))
+			{
+				Save();
+			}
+		}
+
+
+		public void MoveStepDown(IEnumerable<TodoStep> steps, TodoStep item)
+		{
+			if(steps == null)
+			{
+				return;
+			}
+			if(MoveDown(item, steps))
+			{
+				Save();
 			}
 		}
 

@@ -24,7 +24,7 @@ namespace TodoHD
 {
 	public class ViewMode : IMode
 	{
-		int _step = 0;
+		int Step {get;set;} = 1;
 		int _stepStart = 0;
 		TodoItem _item;
 
@@ -36,12 +36,20 @@ namespace TodoHD
 		}
 
 		public void Init(Editor editor) {
-			_step = 0;
+			Step = 1;
 			_item = editor.GetSelectedItem();
 			_item.Steps ??= new();
 			Console.Clear();
 			PrintHelpLine();
 		}
+
+		IEnumerable<TodoStep> GetItems() => (_item.Steps ?? new()).OrderBy(i => i.Order);
+
+		TodoStep GetSelectedItem() => 
+			GetItems()
+				.Select((item,index) => new{item,index})
+				.First(it => Step == it.index + 1)
+				.item;
 
 		public void PrintUI(Editor editor)
 		{
@@ -71,7 +79,13 @@ namespace TodoHD
 				.ForEach(part =>
 					Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
 
-			_stepStart = Console.CursorTop + 1;
+
+			Console.WriteLine();
+			Helpers.WithForeground(ConsoleColor.Magenta, () => {
+			Console.WriteLine($"== Steps ==");
+			});
+
+			_stepStart = Console.CursorTop;
 			
 			PrintSteps(editor);
 
@@ -86,13 +100,12 @@ namespace TodoHD
 			}
 
 			var sb = new StringBuilder();
-			_item
-				.Steps
+			GetItems()
 				.Select((step,index) => new{step,index})
 				.ToList()
 				.ForEach(it => {
 					var c = 0;
-					if(_step == it.index) {
+					if(Step == it.index + 1) {
 						sb.Append("> ");
 						c += 2;
 					}
@@ -114,11 +127,33 @@ namespace TodoHD
 					break;
 				case ConsoleKey.DownArrow:
 				case ConsoleKey.J:
-					NextStep(editor);
+					if(key.Modifiers == ConsoleModifiers.Shift)
+					{
+						if(_item.Steps.Count > 0)
+						{
+							editor.MoveStepDown(GetItems(), GetSelectedItem());
+							NextStep(editor);
+						}
+					}
+					else
+					{
+						NextStep(editor);
+					}
 					break;
 				case ConsoleKey.UpArrow:
 				case ConsoleKey.K:
-					PrevStep(editor);
+					if(key.Modifiers == ConsoleModifiers.Shift)
+					{
+						if(_item.Steps.Count > 0)
+						{
+							editor.MoveStepUp(GetItems(), GetSelectedItem());
+							PrevStep(editor);
+						}
+					}
+					else
+					{
+						PrevStep(editor);
+					}
 					break;
 				case ConsoleKey.OemPlus:
 					AddStep(editor);
@@ -132,13 +167,15 @@ namespace TodoHD
 			}
 		}
 
+		int NextOrder => GetItems().Select(s => s.Order).DefaultIfEmpty(0).Max() + 1;
+
 		void AddStep(Editor editor)
 		{
 			Console.WriteLine("Step text:");
 			Console.CursorVisible = true;
 			var text = Helpers.GetNonEmptyString();
 			Console.CursorVisible = false;
-			_item.Steps.Add(new(){ Text = text });
+			_item.Steps.Add(new(){ Text = text, Order = NextOrder });
 			Init(editor);
 			PrintUI(editor);
 			editor.Save();
@@ -152,13 +189,13 @@ namespace TodoHD
 			}
 			Console.WriteLine();
 			Console.WriteLine("Are you sure you want to delete this step? (y/n)");
-			Console.WriteLine(_item.Steps[_step].Text);
+			Console.WriteLine(GetSelectedItem().Text);
 			Console.CursorVisible = true;
 			var delete = Helpers.GetNonEmptyString();
 			Console.CursorVisible = false;
 			if(delete.ToUpperInvariant() == "Y")
 			{
-				_item.Steps.RemoveAt(_step);
+				_item.Steps.Remove(GetSelectedItem());
 				editor.Save();
 			}
 
@@ -172,20 +209,21 @@ namespace TodoHD
 			{
 				return;
 			}
-			_item.Steps[_step].Completed = !_item.Steps[_step].Completed;
+			var selected = GetSelectedItem();
+			selected.Completed = !selected.Completed;
 			PrintSteps(editor);
 			editor.Save();
 		}
 
 		void NextStep(Editor editor)
 		{
-			_step = Math.Clamp(_step + 1, 0, Math.Max(0, _item.Steps.Count - 1));
+			Step = Math.Clamp(Step + 1, 1, Math.Max(1, _item.Steps.Count));
 			PrintSteps(editor);
 		}
 
 		void PrevStep(Editor editor)
 		{
-			_step = Math.Clamp(_step - 1, 0, Math.Max(0, _item.Steps.Count - 1));
+			Step = Math.Clamp(Step - 1, 1, Math.Max(1, _item.Steps.Count));
 			PrintSteps(editor);
 		}
 	}
