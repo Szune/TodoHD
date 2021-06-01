@@ -44,7 +44,7 @@ namespace TodoHD
 
 		public void Init(Editor editor)
 		{ 
-			_item = editor.GetItem(editor.Item);
+			_item = editor.GetSelectedItem();
 			_tmpTitle = _item.Title;
 			_tmpDescription = _item.Description;
 			_tmpPriority = _item.Priority;
@@ -88,9 +88,9 @@ namespace TodoHD
 					Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
-			switch(key)
+			switch(key.Key)
 			{
 				case ConsoleKey.T:
 					SetTitle(editor);

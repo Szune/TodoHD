@@ -26,7 +26,7 @@ namespace TodoHD
 		public void Init(Editor editor) { }
 		public void PrintUI(Editor editor)
 		{
-			var item = editor.GetItem(editor.Item);
+			var item = editor.GetSelectedItem();
 			Console.Clear();
 			Console.WriteLine($"== {item.Title} ==");
 			Console.WriteLine($"   <{item.Priority}>");
@@ -53,7 +53,7 @@ namespace TodoHD
 			}
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
 		}
 

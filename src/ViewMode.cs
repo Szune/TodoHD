@@ -37,7 +37,7 @@ namespace TodoHD
 
 		public void Init(Editor editor) {
 			_step = 0;
-			_item = editor.GetItem(editor.Item);
+			_item = editor.GetSelectedItem();
 			_item.Steps ??= new();
 			Console.Clear();
 			PrintHelpLine();
@@ -102,9 +102,9 @@ namespace TodoHD
 			Console.Write(sb);
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
-			switch(key)
+			switch(key.Key)
 			{
 				case ConsoleKey.Backspace:
 					editor.PopMode();

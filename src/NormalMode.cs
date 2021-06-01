@@ -33,9 +33,9 @@ namespace TodoHD
 			PrintItems(editor);
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
-			switch(key)
+			switch(key.Key)
 			{
 				case ConsoleKey.Enter:
 					editor.PushMode(new ViewMode());
@@ -60,11 +60,25 @@ namespace TodoHD
 					break;
 				case ConsoleKey.DownArrow:
 				case ConsoleKey.J:
-					editor.NextItem();
+					if(key.Modifiers == ConsoleModifiers.Shift)
+					{
+						editor.MoveItemDown();
+					}
+					else
+					{
+						editor.NextItem();
+					}
 					break;
 				case ConsoleKey.UpArrow:
 				case ConsoleKey.K:
-					editor.PrevItem();
+					if(key.Modifiers == ConsoleModifiers.Shift)
+					{
+						editor.MoveItemUp();
+					}
+					else
+					{
+						editor.PrevItem();
+					}
 					break;
 			}
 

@@ -24,6 +24,6 @@ namespace TodoHD
 	{
 		void Init(Editor editor);
 		void PrintUI(Editor editor);
-		void KeyEvent(ConsoleKey key, Editor editor);
+		void KeyEvent(ConsoleKeyInfo key, Editor editor);
 	}
 }

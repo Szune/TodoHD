@@ -33,7 +33,7 @@ namespace TodoHD
 		{
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
 			Console.CursorVisible = true;
 			Console.WriteLine("== Inserting new item ==");
@@ -50,7 +50,7 @@ namespace TodoHD
 			Console.WriteLine("Priority:");
 			var priority = Helpers.GetPriority();
 
-			editor.InsertItem(new(-1, title, description, category, priority));
+			editor.InsertItem(new(-1, -1, title, description, category, priority));
 			Console.CursorVisible = false;
 			editor.Save();
 			editor.PopMode();

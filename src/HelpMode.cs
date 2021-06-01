@@ -39,9 +39,9 @@ namespace TodoHD
 					});
 		}
 
-		public void KeyEvent(ConsoleKey key, Editor editor)
+		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
 		{
-			switch(key)
+			switch(key.Key)
 			{
 				case ConsoleKey.Backspace:
 					editor.PopMode();

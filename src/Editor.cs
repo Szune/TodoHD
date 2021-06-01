@@ -35,11 +35,12 @@ namespace TodoHD
 		List<string> _categories = new();
 
 		public int NextId => _items.Values.Select(s => s.Id).DefaultIfEmpty(0).Max() + 1;
+		public int NextOrder => _items.Values.Select(s => s.Order).DefaultIfEmpty(0).Max() + 1;
 
 		public IEnumerable<TodoItem> GetItems() => 
 			_items.Values
 			.OrderByDescending(i => (int)i.Priority)
-			.ThenBy(i => i.Id);
+			.ThenBy(i => i.Order);
 
 		public void Load()
 		{
@@ -48,18 +49,30 @@ namespace TodoHD
 				var json = File.ReadAllText(_savePath);
 				var deserialized = JsonSerializer.Deserialize<Todo>(json);
 				_items = deserialized.Items.ToDictionary(i => i.Id);
+				NormalizeItemOrder();
 			}
 			catch
 			{
 				File.WriteAllText(_savePath, JsonSerializer.Serialize<Todo>(new() { Items = new() }));
 			}
 		}
+
+		private void NormalizeItemOrder()
+		{
+			_items
+				.Values
+				.OrderBy(i => i.Order)
+				.Select((item,index) => new { item, index })
+				.ToList()
+				.ForEach(it => it.item.Order = it.index + 1);
+		}
+
 		public int ItemsPerPage => Console.BufferHeight / 5;
 		public int Page {get;private set;} = 1;
 		public int Item {get;private set;} = 1;
 		public int MaxPage => Math.Max(1, _items.Count / ItemsPerPage);
 
-		public TodoItem GetItem(int id)
+		public TodoItem GetSelectedItem()
 		{
 			return GetItems()
 				.Skip(ItemsPerPage * (Page - 1))
@@ -67,6 +80,12 @@ namespace TodoHD
 				.Select((item,index) => new{item,index})
 				.First(it => Item == it.index + 1)
 				.item;
+		}
+
+		public IEnumerable<TodoItem> GetItemsByPriority(Priority priority)
+		{
+			return _items.Values
+				.Where(it => it.Priority == priority);
 		}
 		
 		public IEnumerable<string> GetCategories() => _categories;
@@ -108,7 +127,7 @@ namespace TodoHD
 			PrintCurrent();
 			if(immediate)
 			{
-				_modes.Peek().KeyEvent((ConsoleKey)0, this);
+				_modes.Peek().KeyEvent(new(' ', (ConsoleKey)0, false, false, false), this);
 			}
 		}
 
@@ -121,6 +140,62 @@ namespace TodoHD
 		public void PrevPage()
 		{
 			Page = Math.Clamp(Page - 1, 1, MaxPage);
+			PrintCurrent();
+		}
+
+		public void MoveItemUp()
+		{
+			// TODO: might want to use a more efficient data structure,
+			// possibly a mix of a hashmap and a sorted list
+			var current = GetSelectedItem();
+			var currentOrder = current.Order;
+			var previous = GetItemsByPriority(current.Priority)
+				.Where(i => i.Order < currentOrder)
+				.Aggregate(new { distance = 9999, winner = new TodoItem { Id = -1 } },
+						(acc, it) => {
+							var	dist = currentOrder - it.Order;
+							if(dist < acc.distance)
+							{
+								return new { distance = dist, winner = it };
+							}
+							return acc;
+						});
+			if(previous.winner.Id == -1)
+			{
+				return;
+			}
+			current.Order = previous.winner.Order;
+			previous.winner.Order = currentOrder;
+
+			Save();
+			PrintCurrent();
+		}
+
+		public void MoveItemDown()
+		{
+			// TODO: might want to use a more efficient data structure,
+			// possibly a mix of a hashmap and a sorted list
+			var current = GetSelectedItem();
+			var currentOrder = current.Order;
+			var next = GetItemsByPriority(current.Priority)
+				.Where(i => i.Order > currentOrder)
+				.Aggregate(new { distance = 9999, winner = new TodoItem { Id = -1 } },
+						(acc, it) => {
+							var	dist = it.Order - currentOrder;
+							if(dist < acc.distance)
+							{
+								return new { distance = dist, winner = it };
+							}
+							return acc;
+						});
+			if(next.winner.Id == -1)
+			{
+				return;
+			}
+			current.Order = next.winner.Order;
+			next.winner.Order = currentOrder;
+
+			Save();
 			PrintCurrent();
 		}
 
@@ -139,6 +214,7 @@ namespace TodoHD
 		public void InsertItem(TodoItem item)
 		{
 			item.Id = NextId;
+			item.Order = NextOrder;
 			_items[item.Id] = item;
 			PrintCurrent();
 		}
@@ -196,7 +272,7 @@ namespace TodoHD
 				else
 				{
 					PrintCurrent();
-					_modes.Peek().KeyEvent(key.Key, this);
+					_modes.Peek().KeyEvent(key, this);
 				}
 			}
 		}
