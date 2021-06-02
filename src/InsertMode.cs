@@ -22,38 +22,38 @@ using System.Collections.Generic;
 
 namespace TodoHD
 {
-	public class InsertMode : IMode
-	{
-		public void Init(Editor editor)
-		{
-			editor.PrintHelpLine(true);
-		}
+    public class InsertMode : IMode
+    {
+        public void Init(Editor editor)
+        {
+            editor.PrintHelpLine(true);
+        }
 
-		public void PrintUI(Editor editor)
-		{
-		}
+        public void PrintUI(Editor editor)
+        {
+        }
 
-		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
-		{
-			Console.CursorVisible = true;
-			Console.WriteLine("== Inserting new item ==");
-			Console.WriteLine("Title:");
-			var title = Helpers.GetNonEmptyString();
+        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+        {
+            Console.CursorVisible = true;
+            Console.WriteLine("== Inserting new item ==");
+            Console.WriteLine("Title:");
+            var title = Helpers.GetNonEmptyString();
 
-			Console.WriteLine("Description (<br> for newlines):");
-			var description = Helpers.GetNonEmptyString().Replace("<br>", Environment.NewLine);
+            Console.WriteLine("Description (<br> for newlines):");
+            var description = Helpers.GetNonEmptyString().Replace("<br>", Environment.NewLine);
 
-			//Console.WriteLine("Category:");
-			//var category = Helpers.GetNonEmptyString();
-			var category = "";
+            //Console.WriteLine("Category:");
+            //var category = Helpers.GetNonEmptyString();
+            var category = "";
 
-			Console.WriteLine("Priority:");
-			var priority = Helpers.GetPriority();
+            Console.WriteLine("Priority:");
+            var priority = Helpers.GetPriority();
 
-			editor.InsertItem(new(-1, -1, title, description, category, priority));
-			Console.CursorVisible = false;
-			editor.Save();
-			editor.PopMode();
-		}
-	}
+            editor.InsertItem(new(-1, -1, title, description, category, priority));
+            Console.CursorVisible = false;
+            editor.Save();
+            editor.PopMode();
+        }
+    }
 }

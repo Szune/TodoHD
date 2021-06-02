@@ -22,94 +22,94 @@ using System.Collections.Generic;
 
 namespace TodoHD
 {
-	public class NormalMode : IMode
-	{
-		public void Init(Editor editor)
-		{
-			editor.PrintHelpLine(true);
-		}
-		public void PrintUI(Editor editor)
-		{
-			PrintItems(editor);
-		}
+    public class NormalMode : IMode
+    {
+        public void Init(Editor editor)
+        {
+            editor.PrintHelpLine(true);
+        }
+        public void PrintUI(Editor editor)
+        {
+            PrintItems(editor);
+        }
 
-		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
-		{
-			switch(key.Key)
-			{
-				case ConsoleKey.Enter:
-					editor.PushMode(new ViewMode());
-					break;
-				case ConsoleKey.I:
-					editor.PushMode(new InsertMode(), true);
-					break;
-				case ConsoleKey.E:
-					editor.PushMode(new EditMode());
-					break;
-				case ConsoleKey.H:
-					editor.PushMode(new HelpMode());
-					break;
-				case ConsoleKey.D:
-					editor.PushMode(new DeleteMode());
-					break;
-				case ConsoleKey.N:
-					editor.NextPage();
-					break;
-				case ConsoleKey.P:
-					editor.PrevPage();
-					break;
-				case ConsoleKey.DownArrow:
-				case ConsoleKey.J:
-					if(key.Modifiers == ConsoleModifiers.Shift)
-					{
-						editor.MoveItemDown();
-					}
-					else
-					{
-						editor.NextItem();
-					}
-					break;
-				case ConsoleKey.UpArrow:
-				case ConsoleKey.K:
-					if(key.Modifiers == ConsoleModifiers.Shift)
-					{
-						editor.MoveItemUp();
-					}
-					else
-					{
-						editor.PrevItem();
-					}
-					break;
-			}
+        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+        {
+            switch(key.Key)
+            {
+                case ConsoleKey.Enter:
+                    editor.PushMode(new ViewMode());
+                    break;
+                case ConsoleKey.I:
+                    editor.PushMode(new InsertMode(), true);
+                    break;
+                case ConsoleKey.E:
+                    editor.PushMode(new EditMode());
+                    break;
+                case ConsoleKey.H:
+                    editor.PushMode(new HelpMode());
+                    break;
+                case ConsoleKey.D:
+                    editor.PushMode(new DeleteMode());
+                    break;
+                case ConsoleKey.N:
+                    editor.NextPage();
+                    break;
+                case ConsoleKey.P:
+                    editor.PrevPage();
+                    break;
+                case ConsoleKey.DownArrow:
+                case ConsoleKey.J:
+                    if(key.Modifiers == ConsoleModifiers.Shift)
+                    {
+                        editor.MoveItemDown();
+                    }
+                    else
+                    {
+                        editor.NextItem();
+                    }
+                    break;
+                case ConsoleKey.UpArrow:
+                case ConsoleKey.K:
+                    if(key.Modifiers == ConsoleModifiers.Shift)
+                    {
+                        editor.MoveItemUp();
+                    }
+                    else
+                    {
+                        editor.PrevItem();
+                    }
+                    break;
+            }
 
-		}
+        }
 
-		void PrintItems(Editor editor)
-		{
-			Console.SetCursorPosition(0,1);
-			var sb = new StringBuilder();
-			editor
-				.GetItems()
-				.Skip(editor.ItemsPerPage * (editor.Page - 1))
-				.Take(editor.ItemsPerPage)
-				.Select((item,index) => new{item,index})
-				.ToList()
-				.ForEach(it => {
-					var c = sb.Length;
-					if(editor.Item == it.index + 1)
-					{
-						sb.Append(" >");
-					}
-					sb.Append(it.item.Priority switch {
-						Priority.Whenever => " * ",
-						Priority.Urgent => " (!) ",
-						_ => "-"
-					});
-					sb.Append(it.item.Title);
-					c = sb.Length - c;
-					sb.AppendLine(new string(' ', Console.BufferWidth - 1 - c));
-				});
-			Console.Write(sb);
-		}
-	}
+        void PrintItems(Editor editor)
+        {
+            Console.SetCursorPosition(0,1);
+            var sb = new StringBuilder();
+            editor
+                .GetItems()
+                .Skip(editor.ItemsPerPage * (editor.Page - 1))
+                .Take(editor.ItemsPerPage)
+                .Select((item,index) => new{item,index})
+                .ToList()
+                .ForEach(it => {
+                    var c = sb.Length;
+                    if(editor.Item == it.index + 1)
+                    {
+                        sb.Append(" >");
+                    }
+                    sb.Append(it.item.Priority switch {
+                        Priority.Whenever => " * ",
+                        Priority.Urgent => " (!) ",
+                        _ => "-"
+                    });
+                    sb.Append(it.item.Title);
+                    c = sb.Length - c;
+                    sb.AppendLine(new string(' ', Console.BufferWidth - 1 - c));
+                });
+            Console.Write(sb);
+        }
+    }
 }

@@ -20,34 +20,34 @@ using System.Collections.Generic;
 
 namespace TodoHD
 {
-	public class HelpMode : IMode
-	{
-		public void Init(Editor editor) { }
-		public void PrintUI(Editor editor)
-		{
-			Console.Clear();
-			Helpers.WithBackground(ConsoleColor.DarkCyan, () => {
-				Console.WriteLine("== Keybindings ==");
-			});
-			Helpers.WithForeground(ConsoleColor.White, () => {
-					Console.WriteLine($" [Enter] Show item");
-					Console.WriteLine($" [Backspace] Back");
-					Console.WriteLine($" [I] New item  [H] Help [Q] Quit");
-					Console.WriteLine($" [E] Edit item [D] Delete item");
-					Console.WriteLine($" [J] Next item [K] Prev item");
-					Console.WriteLine($" [N] Next Page [P] Prev Page");
-					});
-		}
+    public class HelpMode : IMode
+    {
+        public void Init(Editor editor) { }
+        public void PrintUI(Editor editor)
+        {
+            Console.Clear();
+            Helpers.WithBackground(ConsoleColor.DarkCyan, () => {
+                Console.WriteLine("== Keybindings ==");
+            });
+            Helpers.WithForeground(ConsoleColor.White, () => {
+                    Console.WriteLine($" [Enter] Show item");
+                    Console.WriteLine($" [Backspace] Back");
+                    Console.WriteLine($" [I] New item  [H] Help [Q] Quit");
+                    Console.WriteLine($" [E] Edit item [D] Delete item");
+                    Console.WriteLine($" [J] Next item [K] Prev item");
+                    Console.WriteLine($" [N] Next Page [P] Prev Page");
+                    });
+        }
 
-		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
-		{
-			switch(key.Key)
-			{
-				case ConsoleKey.Backspace:
-					editor.PopMode();
-					break;
-			}
-		}
+        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+        {
+            switch(key.Key)
+            {
+                case ConsoleKey.Backspace:
+                    editor.PopMode();
+                    break;
+            }
+        }
 
-	}
+    }
 }

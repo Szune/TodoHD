@@ -21,41 +21,41 @@ using System.Linq;
 
 namespace TodoHD
 {
-	public class DeleteMode : IMode
-	{
-		public void Init(Editor editor) { }
-		public void PrintUI(Editor editor)
-		{
-			var item = editor.GetSelectedItem();
-			Console.Clear();
-			Console.WriteLine($"== {item.Title} ==");
-			Console.WriteLine($"   <{item.Priority}>");
-			item
-				.Description
-				.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-				.ToList()
-				.ForEach(part =>
-					Console.WriteLine($"{new string(' ', 2)}{part}"));
+    public class DeleteMode : IMode
+    {
+        public void Init(Editor editor) { }
+        public void PrintUI(Editor editor)
+        {
+            var item = editor.GetSelectedItem();
+            Console.Clear();
+            Console.WriteLine($"== {item.Title} ==");
+            Console.WriteLine($"   <{item.Priority}>");
+            item
+                .Description
+                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .ToList()
+                .ForEach(part =>
+                    Console.WriteLine($"{new string(' ', 2)}{part}"));
 
-			Console.WriteLine();
-			Console.WriteLine("Are you sure you want to delete? (y/n)");
-			Console.CursorVisible = true;
-			var delete = Helpers.GetNonEmptyString();
-			Console.CursorVisible = false;
-			if(delete.ToUpperInvariant() == "Y")
-			{
-				editor.DeleteItemById(item.Id);
-				editor.PopMode();
-			}
-			else
-			{
-				editor.PopMode();
-			}
-		}
+            Console.WriteLine();
+            Console.WriteLine("Are you sure you want to delete? (y/n)");
+            Console.CursorVisible = true;
+            var delete = Helpers.GetNonEmptyString();
+            Console.CursorVisible = false;
+            if(delete.ToUpperInvariant() == "Y")
+            {
+                editor.DeleteItemById(item.Id);
+                editor.PopMode();
+            }
+            else
+            {
+                editor.PopMode();
+            }
+        }
 
-		public void KeyEvent(ConsoleKeyInfo key, Editor editor)
-		{
-		}
+        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+        {
+        }
 
-	}
+    }
 }

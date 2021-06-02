@@ -23,24 +23,24 @@ using System.Text.Json;
 
 namespace TodoHD
 {
-	class Program
-	{
-		static void Main(string[] args)
-		{
-			string path;
-			if(args.Length == 1 && args[0] == ".")
-			{
-				path = "todohd.json";
-			}
-			else
-			{
-				path = Path.Combine(AppContext.BaseDirectory, "todohd.json");
-			}
-			Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
-			var editor = new Editor(path);
-			editor.Load();
-			editor.PushMode(new NormalMode());
-			editor.Start();
-		}
-	}
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string path;
+            if(args.Length == 1 && args[0] == ".")
+            {
+                path = "todohd.json";
+            }
+            else
+            {
+                path = Path.Combine(AppContext.BaseDirectory, "todohd.json");
+            }
+            Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
+            var editor = new Editor(path);
+            editor.Load();
+            editor.PushMode(new NormalMode());
+            editor.Start();
+        }
+    }
 }

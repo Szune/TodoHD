@@ -22,66 +22,66 @@ using System.Linq;
 
 namespace TodoHD
 {
-	public record Option(int Number, string Name);
+    public record Option(int Number, string Name);
 
-	public static class Helpers
-	{
-		public static void WithBackground(ConsoleColor color, Action print)
-		{
-			var old = Console.BackgroundColor;
-			Console.BackgroundColor = color;
-			print();
-			Console.BackgroundColor = old;
-		}
+    public static class Helpers
+    {
+        public static void WithBackground(ConsoleColor color, Action print)
+        {
+            var old = Console.BackgroundColor;
+            Console.BackgroundColor = color;
+            print();
+            Console.BackgroundColor = old;
+        }
 
-		public static void WithForeground(ConsoleColor color, Action print)
-		{
-			var old = Console.ForegroundColor;
-			Console.ForegroundColor = color;
-			print();
-			Console.ForegroundColor = old;
-		}
+        public static void WithForeground(ConsoleColor color, Action print)
+        {
+            var old = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            print();
+            Console.ForegroundColor = old;
+        }
 
-		public static string GetNonEmptyString()
-		{
-			Console.Write(">");
-			string text;
-			while(string.IsNullOrWhiteSpace((text = Console.ReadLine())))
-			{
-				Console.Write(">");
-			}
-			return text;
-		}
+        public static string GetNonEmptyString()
+        {
+            Console.Write(">");
+            string text;
+            while(string.IsNullOrWhiteSpace((text = Console.ReadLine())))
+            {
+                Console.Write(">");
+            }
+            return text;
+        }
 
-		public static Priority GetPriority()
-		{
-			var priorities = 
-				Enum
-				.GetValues<Priority>()
-				.Cast<int>()
-				.Zip(Enum.GetNames(typeof(Priority)))
-				.Select(p => new Option(p.Item1, p.Item2))
-				.ToList();
-			Helpers.PrintOptions(priorities);
-			Console.Write(">");
-			string text;
-			int number;
-			while(string.IsNullOrWhiteSpace((text = Console.ReadLine())) || !int.TryParse(text, out number) || !priorities.Any(p => p.Number == number))
-			{
-				Helpers.PrintOptions(priorities);
-				Console.Write(">");
-			}
-			return (Priority)number;
-		}
+        public static Priority GetPriority()
+        {
+            var priorities = 
+                Enum
+                .GetValues<Priority>()
+                .Cast<int>()
+                .Zip(Enum.GetNames(typeof(Priority)))
+                .Select(p => new Option(p.Item1, p.Item2))
+                .ToList();
+            Helpers.PrintOptions(priorities);
+            Console.Write(">");
+            string text;
+            int number;
+            while(string.IsNullOrWhiteSpace((text = Console.ReadLine())) || !int.TryParse(text, out number) || !priorities.Any(p => p.Number == number))
+            {
+                Helpers.PrintOptions(priorities);
+                Console.Write(">");
+            }
+            return (Priority)number;
+        }
 
 
-		public static void PrintOptions(IEnumerable<Option> options)
-		{
-			options
-				.Select(o => $"{o.Number} {o.Name}")
-				.ToList()
-				.ForEach(Console.WriteLine);
-		}
+        public static void PrintOptions(IEnumerable<Option> options)
+        {
+            options
+                .Select(o => $"{o.Number} {o.Name}")
+                .ToList()
+                .ForEach(Console.WriteLine);
+        }
 
-	}
+    }
 }
