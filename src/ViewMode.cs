@@ -31,7 +31,7 @@ namespace TodoHD
         void PrintHelpLine()
         {
             Helpers.WithForeground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"[+] Add step [-] Remove step [E] Edit [Space] Mark step [Q] Quit");
+                    Console.WriteLine($"[+] Add step [-] Remove step [T] Edit step [E] Edit item [Space] Mark step [Q] Quit");
                     });
         }
 
@@ -161,6 +161,9 @@ namespace TodoHD
                 case ConsoleKey.OemMinus:
                     DeleteStep(editor);
                     break;
+                case ConsoleKey.T:
+                    EditStep(editor);
+                    break;
                 case ConsoleKey.Spacebar:
                     MarkStep(editor);
                     break;
@@ -229,7 +232,28 @@ namespace TodoHD
 
         void EditStep(Editor editor)
         {
-            // TODO: do some steppin
+            // Clear steps to focus on the one being edited
+            Console.SetCursorPosition(0, _stepStart);
+            var sb = new StringBuilder();
+            Enumerable
+                .Range(0, _item.Steps.Count)
+                .ToList()
+                .ForEach(_ => sb.AppendLine(new string(' ', Console.BufferWidth - 1)));
+            Console.Write(sb);
+
+            var item = GetSelectedItem();
+            Console.SetCursorPosition(0, _stepStart);
+            Console.WriteLine("Previous text:");
+            Console.WriteLine($" {item.Text}");
+            Console.WriteLine("New text:");
+            Console.CursorVisible = true;
+            var text = Helpers.GetNonEmptyString();
+            Console.CursorVisible = false;
+            item.Text = text;
+
+            editor.Save();
+            Init(editor);
+            PrintUI(editor);
         }
     }
 }
