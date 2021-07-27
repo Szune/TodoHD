@@ -202,51 +202,59 @@ namespace TodoHD
             return true;
         }
 
-        public void MoveItemUp()
+        public bool MoveItemUp()
         {
             var current = GetSelectedItem();
             if(MoveUp(current, GetItemsByPriority(current.Priority)))
             {
                 Save();
                 PrevItem();
+                return true;
             }
+            return false;
         }
 
 
-        public void MoveItemDown()
+        public bool MoveItemDown()
         {
             var current = GetSelectedItem();
             if(MoveDown(current, GetItemsByPriority(current.Priority)))
             {
                 Save();
                 NextItem();
+                return true;
             }
+            return false;
         }
 
         // TODO: should probably have an id on the steps as well
-        public void MoveStepUp(IEnumerable<TodoStep> steps, TodoStep item)
+        public bool MoveStepUp(IEnumerable<TodoStep> steps, TodoStep item)
         {
             if(steps == null)
             {
-                return;
+                return false;
             }
             if(MoveUp(item, steps))
             {
                 Save();
+                return true;
             }
+            return false;
         }
 
 
-        public void MoveStepDown(IEnumerable<TodoStep> steps, TodoStep item)
+        public bool MoveStepDown(IEnumerable<TodoStep> steps, TodoStep item)
         {
             if(steps == null)
             {
-                return;
+                return false;
             }
             if(MoveDown(item, steps))
             {
                 Save();
+                return true;
             }
+            return false;
         }
 
         public void NextItem()
@@ -258,6 +266,18 @@ namespace TodoHD
         public void PrevItem()
         {
             Item = Math.Clamp(Item - 1, 1, Math.Max(1,_items.Count));
+            PrintCurrent();
+        }
+
+        public void LastItem()
+        {
+            Item = Math.Max(1,_items.Count);
+            PrintCurrent();
+        }
+
+        public void FirstItem()
+        {
+            Item = 1;
             PrintCurrent();
         }
 
@@ -281,7 +301,7 @@ namespace TodoHD
             {
                 Console.Clear();
             }
-            Helpers.WithForeground(ConsoleColor.Green, () => {
+            Output.WithForeground(ConsoleColor.Green, () => {
                     Console.WriteLine($"Page {Page}/{MaxPage} | [I] New item [H] Help [Q] Quit");
                     });
         }

@@ -19,55 +19,52 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using SaferVariants;
 
 namespace TodoHD
 {
     public class ViewMode : IMode
     {
-        int Step {get;set;} = 1;
         int _stepStart = 0;
         TodoItem _item;
+        ListBox<TodoStep> _list;
+        HelpLine _help;
 
-        void PrintHelpLine()
+        public ViewMode(TodoItem item)
         {
-            Helpers.WithForeground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"[+] Add step [-] Remove step [T] Edit step [E] Edit item [Space] Mark step [Q] Quit");
-                    });
+            _help = new HelpLine("[+] Add step [-] Remove step [T] Edit step [E] Edit item [Space] Mark step [Q] Quit");
+            _item = item;
+            _item.Steps ??= new();
+            _list = new(GetItems, step => $" [{(step.Completed ? 'x' : ' ')}] {step.Text}")
+            {
+                OrderBy = Option.Some<Func<IEnumerable<TodoStep>, IEnumerable<TodoStep>>>(it => it.OrderBy(x => x.Order))
+            };
         }
 
         public void Init(Editor editor) {
-            Step = 1;
-            _item = editor.GetSelectedItem();
-            _item.Steps ??= new();
             Console.Clear();
-            PrintHelpLine();
+            _help.Print();
         }
 
         IEnumerable<TodoStep> GetItems() => (_item.Steps ?? new()).OrderBy(i => i.Order);
 
-        TodoStep GetSelectedItem() => 
-            GetItems()
-                .Select((item,index) => new{item,index})
-                .First(it => Step == it.index + 1)
-                .item;
-
         public void PrintUI(Editor editor)
         {
-            Console.SetCursorPosition(0, 1);
-            Helpers.WithForeground(ConsoleColor.Magenta, () => {
+            Console.SetCursorPosition(0, _help.Height);
+            Output.WithForeground(ConsoleColor.Magenta, () => {
             Console.WriteLine($"== {_item.Title} ==");
             });
             switch(_item.Priority)
             {
                 case Priority.Whenever:
                     Console.Write("   ");
-                    Helpers.WithBackground(ConsoleColor.Green, () => {
+                    Output.WithBackground(ConsoleColor.Green, () => {
                     Console.WriteLine($"<{_item.Priority}>");
                     });
                     break;
                 case Priority.Urgent:
                     Console.Write("   ");
-                    Helpers.WithBackground(ConsoleColor.Red, () => {
+                    Output.WithBackground(ConsoleColor.Red, () => {
                     Console.WriteLine($"*{_item.Priority}*");
                     });
                     break;
@@ -77,46 +74,33 @@ namespace TodoHD
                 .Split(Environment.NewLine)
                 .ToList()
                 .ForEach(part =>
-                    Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
+                    Output.WriteLineWrapping($"{new string(' ', 2)}{part}"));
 
 
             Console.WriteLine();
-            Helpers.WithForeground(ConsoleColor.Magenta, () => {
+            Output.WithForeground(ConsoleColor.Magenta, () => {
             Console.WriteLine($"== Steps ==");
             });
 
             _stepStart = Console.CursorTop;
             
             PrintSteps(editor);
-
         }
 
         void PrintSteps(Editor editor)
         {
             Console.SetCursorPosition(0, _stepStart);
-            if(_item.Steps == null)
-            {
-                return;
-            }
-
-            var sb = new StringBuilder();
-            GetItems()
-                .Select((step,index) => new{step,index})
-                .ToList()
-                .ForEach(it => {
-                    var c = 0;
-                    if(Step == it.index + 1) {
-                        sb.Append("> ");
-                        c += 2;
-                    }
-                    c += "[x] ".Length + it.step.Text.Length;
-                    sb.AppendLine($"[{(it.step.Completed ? 'x' : ' ')}] {it.step.Text}{new string(' ', Console.BufferWidth - 1 - c)}");
-                });
-            Console.Write(sb);
+            _list.Print();
         }
 
         public void KeyEvent(ConsoleKeyInfo key, Editor editor)
         {
+            if (_help.KeyEvent(key, editor))
+            {
+                Init(editor);
+                PrintUI(editor);
+                return;
+            }
             switch(key.Key)
             {
                 case ConsoleKey.Backspace:
@@ -125,19 +109,42 @@ namespace TodoHD
                 case ConsoleKey.E:
                     editor.PushMode(new EditMode());
                     break;
+                case ConsoleKey.G:
+                    if (key.Modifiers == ConsoleModifiers.Shift)
+                    {
+                        if(_list.SelectLast())
+                        {
+                            PrintSteps(editor);
+                        }
+                    }
+                    else
+                    {
+                        if(_list.SelectFirst())
+                        {
+                            PrintSteps(editor);
+                        }
+                    }
+                    break;
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.J:
                     if(key.Modifiers == ConsoleModifiers.Shift)
                     {
                         if(_item.Steps.Count > 0)
                         {
-                            editor.MoveStepDown(GetItems(), GetSelectedItem());
-                            NextStep(editor);
+                            if(editor.MoveStepDown(GetItems(), _list.SelectedItem))
+                            {
+                                _list.Update();
+                                _list.SelectNext();
+                                PrintSteps(editor);
+                            }
                         }
                     }
                     else
                     {
-                        NextStep(editor);
+                        if(_list.SelectNext())
+                        {
+                            PrintSteps(editor);
+                        }
                     }
                     break;
                 case ConsoleKey.UpArrow:
@@ -146,13 +153,20 @@ namespace TodoHD
                     {
                         if(_item.Steps.Count > 0)
                         {
-                            editor.MoveStepUp(GetItems(), GetSelectedItem());
-                            PrevStep(editor);
+                            if(editor.MoveStepUp(GetItems(), _list.SelectedItem))
+                            {
+                                _list.Update();
+                                _list.SelectPrevious();
+                                PrintSteps(editor);
+                            }
                         }
                     }
                     else
                     {
-                        PrevStep(editor);
+                        if(_list.SelectPrevious())
+                        {
+                            PrintSteps(editor);
+                        }
                     }
                     break;
                 case ConsoleKey.OemPlus:
@@ -176,7 +190,7 @@ namespace TodoHD
         {
             Console.WriteLine("Step text:");
             Console.CursorVisible = true;
-            var text = Helpers.GetNonEmptyString();
+            var text = Input.GetNonEmptyString();
             Console.CursorVisible = false;
             _item.Steps.Add(new(){ Text = text, Order = NextOrder });
             Init(editor);
@@ -192,13 +206,13 @@ namespace TodoHD
             }
             Console.WriteLine();
             Console.WriteLine("Are you sure you want to delete this step? (y/n)");
-            Console.WriteLine(GetSelectedItem().Text);
+            Console.WriteLine(_list.SelectedItem.Text);
             Console.CursorVisible = true;
-            var delete = Helpers.GetNonEmptyString();
+            var delete = Input.GetNonEmptyString();
             Console.CursorVisible = false;
             if(delete.ToUpperInvariant() == "Y")
             {
-                _item.Steps.Remove(GetSelectedItem());
+                _item.Steps.Remove(_list.SelectedItem);
                 editor.Save();
             }
 
@@ -212,22 +226,10 @@ namespace TodoHD
             {
                 return;
             }
-            var selected = GetSelectedItem();
+            var selected = _list.SelectedItem;
             selected.Completed = !selected.Completed;
             PrintSteps(editor);
             editor.Save();
-        }
-
-        void NextStep(Editor editor)
-        {
-            Step = Math.Clamp(Step + 1, 1, Math.Max(1, _item.Steps.Count));
-            PrintSteps(editor);
-        }
-
-        void PrevStep(Editor editor)
-        {
-            Step = Math.Clamp(Step - 1, 1, Math.Max(1, _item.Steps.Count));
-            PrintSteps(editor);
         }
 
         void EditStep(Editor editor)
@@ -241,13 +243,13 @@ namespace TodoHD
                 .ForEach(_ => sb.AppendLine(new string(' ', Console.BufferWidth - 1)));
             Console.Write(sb);
 
-            var item = GetSelectedItem();
+            var item = _list.SelectedItem;
             Console.SetCursorPosition(0, _stepStart);
             Console.WriteLine("Previous text:");
             Console.WriteLine($" {item.Text}");
             Console.WriteLine("New text:");
             Console.CursorVisible = true;
-            var text = Helpers.GetNonEmptyString();
+            var text = Input.GetNonEmptyString();
             Console.CursorVisible = false;
             item.Text = text;
 

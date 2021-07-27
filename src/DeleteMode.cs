@@ -40,7 +40,7 @@ namespace TodoHD
             Console.WriteLine();
             Console.WriteLine("Are you sure you want to delete? (y/n)");
             Console.CursorVisible = true;
-            var delete = Helpers.GetNonEmptyString();
+            var delete = Input.GetNonEmptyString();
             Console.CursorVisible = false;
             if(delete.ToUpperInvariant() == "Y")
             {

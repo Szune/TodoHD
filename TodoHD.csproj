@@ -14,4 +14,8 @@
 	<TrimMode>Link</TrimMode>
   </PropertyGroup>
 
+  <ItemGroup>
+	  <PackageReference Include="SaferVariants" Version="1.6.0" />
+  </ItemGroup>
+
 </Project>

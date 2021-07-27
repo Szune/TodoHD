@@ -16,17 +16,36 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 using System;
-using System.Text;
 using System.Linq;
 using System.Collections.Generic;
+using SaferVariants;
 
 namespace TodoHD
 {
     public class NormalMode : IMode
     {
+        ListBox<TodoItem> _list;
+
         public void Init(Editor editor)
         {
             editor.PrintHelpLine(true);
+            _list ??= 
+                new(
+                    editor
+                        .GetItems()
+                        .Skip(editor.ItemsPerPage * (editor.Page - 1))
+                        .Take(editor.ItemsPerPage)
+                        .ToList,
+                    item =>     
+                        item.Priority switch {
+                            Priority.Whenever => " * ",
+                            Priority.Urgent => " (!) ",
+                            _ => "-"
+                        } + item.Title)
+            {
+                OrderBy = Option.Some<Func<IEnumerable<TodoItem>, IEnumerable<TodoItem>>>(it => it.OrderByDescending(x => (int)x.Priority).ThenBy(x => x.Order))
+            };
+
         }
         public void PrintUI(Editor editor)
         {
@@ -38,7 +57,7 @@ namespace TodoHD
             switch(key.Key)
             {
                 case ConsoleKey.Enter:
-                    editor.PushMode(new ViewMode());
+                    editor.PushMode(new ViewMode(_list.SelectedItem));
                     break;
                 case ConsoleKey.I:
                     editor.PushMode(new InsertMode(), true);
@@ -58,26 +77,58 @@ namespace TodoHD
                 case ConsoleKey.P:
                     editor.PrevPage();
                     break;
+                case ConsoleKey.G:
+                    if (key.Modifiers == ConsoleModifiers.Shift)
+                    {
+                        if(_list.SelectLast())
+                        {
+                            editor.LastItem();
+                        }
+                    }
+                    else
+                    {
+                        if(_list.SelectFirst())
+                        {
+                            editor.FirstItem();
+                        }
+                    }
+                    break;
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.J:
                     if(key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        editor.MoveItemDown();
+                        if(editor.MoveItemDown())
+                        {
+                            _list.Update();
+                            _list.SelectNext();
+                            PrintItems(editor);
+                        }
                     }
                     else
                     {
-                        editor.NextItem();
+                        if(_list.SelectNext())
+                        {
+                            editor.NextItem();
+                        }
                     }
                     break;
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.K:
                     if(key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        editor.MoveItemUp();
+                        if(editor.MoveItemUp())
+                        {
+                            _list.Update();
+                            _list.SelectPrevious();
+                            PrintItems(editor);
+                        }
                     }
                     else
                     {
-                        editor.PrevItem();
+                        if(_list.SelectPrevious())
+                        {
+                            editor.PrevItem();
+                        }
                     }
                     break;
             }
@@ -87,29 +138,7 @@ namespace TodoHD
         void PrintItems(Editor editor)
         {
             Console.SetCursorPosition(0,1);
-            var sb = new StringBuilder();
-            editor
-                .GetItems()
-                .Skip(editor.ItemsPerPage * (editor.Page - 1))
-                .Take(editor.ItemsPerPage)
-                .Select((item,index) => new{item,index})
-                .ToList()
-                .ForEach(it => {
-                    var c = sb.Length;
-                    if(editor.Item == it.index + 1)
-                    {
-                        sb.Append(" >");
-                    }
-                    sb.Append(it.item.Priority switch {
-                        Priority.Whenever => " * ",
-                        Priority.Urgent => " (!) ",
-                        _ => "-"
-                    });
-                    sb.Append(it.item.Title);
-                    c = sb.Length - c;
-                    sb.AppendLine(new string(' ', Console.BufferWidth - 1 - c));
-                });
-            Console.Write(sb);
+            _list.Print();
         }
     }
 }

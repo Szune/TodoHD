@@ -16,7 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace TodoHD
@@ -28,18 +27,17 @@ namespace TodoHD
         string _tmpTitle;
         string _tmpDescription;
         Priority _tmpPriority;
+        HelpLine _help;
 
-        void PrintHelpLine()
+        public EditMode()
         {
-            Helpers.WithForeground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"[T] Title [D] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
-                    });
+            _help = new HelpLine("[T] Title [D] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
         }
 
         void _initUI()
         {
             Console.Clear();
-            PrintHelpLine();
+            _help.Print();
         }
 
         public void Init(Editor editor)
@@ -53,7 +51,7 @@ namespace TodoHD
 
         public void PrintUI(Editor editor)
         {
-            Console.SetCursorPosition(0, 1);
+            Console.SetCursorPosition(0, _help.Height);
             if(_changed)
             {
                 Console.WriteLine($"<< Editing (changed!) >>");
@@ -62,7 +60,7 @@ namespace TodoHD
             {
                 Console.WriteLine($"<< Editing >>");
             }
-            Helpers.WithForeground(ConsoleColor.Magenta, () => {
+            Output.WithForeground(ConsoleColor.Magenta, () => {
             Console.WriteLine($"== {_tmpTitle} ==");
             });
 
@@ -70,13 +68,13 @@ namespace TodoHD
             {
                 case Priority.Whenever:
                     Console.Write("   ");
-                    Helpers.WithBackground(ConsoleColor.Green, () => {
+                    Output.WithBackground(ConsoleColor.Green, () => {
                     Console.WriteLine($"<{_tmpPriority}>");
                     });
                     break;
                 case Priority.Urgent:
                     Console.Write("   ");
-                    Helpers.WithBackground(ConsoleColor.Red, () => {
+                    Output.WithBackground(ConsoleColor.Red, () => {
                     Console.WriteLine($"*{_tmpPriority}*");
                     });
                     break;
@@ -90,6 +88,13 @@ namespace TodoHD
 
         public void KeyEvent(ConsoleKeyInfo key, Editor editor)
         {
+            if (_help.KeyEvent(key, editor))
+            {
+                Init(editor);
+                PrintUI(editor);
+                return;
+            }
+            
             switch(key.Key)
             {
                 case ConsoleKey.T:
@@ -110,7 +115,7 @@ namespace TodoHD
                 case ConsoleKey.Backspace:
                     if(_changed)
                     {
-                        Helpers.WithForeground(ConsoleColor.Red, () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
+                        Output.WithForeground(ConsoleColor.Red, () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
                     }
                     else
                     {
@@ -124,7 +129,7 @@ namespace TodoHD
         {
             Console.WriteLine("New title:");
             Console.CursorVisible = true;
-            var text = Helpers.GetNonEmptyString();
+            var text = Input.GetNonEmptyString();
             Console.CursorVisible = false;
             _changed = true;
             _tmpTitle = text;
@@ -136,7 +141,7 @@ namespace TodoHD
         {
             Console.WriteLine("New description (<br> for newlines):");
             Console.CursorVisible = true;
-            var text = Helpers.GetNonEmptyString().Replace("<br>", Environment.NewLine);
+            var text = Input.GetNonEmptyString().Replace("<br>", Environment.NewLine);
             Console.CursorVisible = false;
             _changed = true;
             _tmpDescription = text;

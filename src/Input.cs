@@ -1,4 +1,4 @@
-//
+﻿//
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
 // Copyright (C) 2021  Carl Erik Patrik Iwarson
 //
@@ -16,32 +16,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 using System;
-using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace TodoHD
 {
-    public record Option(int Number, string Name);
-
-    public static class Helpers
+    public record EnumOption(int Number, string Name);
+    
+    public static class Input
     {
-        public static void WithBackground(ConsoleColor color, Action print)
-        {
-            var old = Console.BackgroundColor;
-            Console.BackgroundColor = color;
-            print();
-            Console.BackgroundColor = old;
-        }
-
-        public static void WithForeground(ConsoleColor color, Action print)
-        {
-            var old = Console.ForegroundColor;
-            Console.ForegroundColor = color;
-            print();
-            Console.ForegroundColor = old;
-        }
-
         public static string GetNonEmptyString()
         {
             Console.Write(">");
@@ -52,30 +35,30 @@ namespace TodoHD
             }
             return text;
         }
-
+        
         public static Priority GetPriority()
         {
             var priorities = 
                 Enum
-                .GetValues<Priority>()
-                .Cast<int>()
-                .Zip(Enum.GetNames(typeof(Priority)))
-                .Select(p => new Option(p.Item1, p.Item2))
-                .ToList();
-            Helpers.PrintOptions(priorities);
+                    .GetValues<Priority>()
+                    .Cast<int>()
+                    .Zip(Enum.GetNames(typeof(Priority)))
+                    .Select(p => new EnumOption(p.Item1, p.Item2))
+                    .ToList();
+            PrintOptions(priorities);
             Console.Write(">");
             string text;
             int number;
             while(string.IsNullOrWhiteSpace((text = Console.ReadLine())) || !int.TryParse(text, out number) || !priorities.Any(p => p.Number == number))
             {
-                Helpers.PrintOptions(priorities);
+                PrintOptions(priorities);
                 Console.Write(">");
             }
             return (Priority)number;
         }
 
 
-        public static void PrintOptions(IEnumerable<Option> options)
+        public static void PrintOptions(IEnumerable<EnumOption> options)
         {
             options
                 .Select(o => $"{o.Number} {o.Name}")

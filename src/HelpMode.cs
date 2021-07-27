@@ -26,16 +26,18 @@ namespace TodoHD
         public void PrintUI(Editor editor)
         {
             Console.Clear();
-            Helpers.WithBackground(ConsoleColor.DarkCyan, () => {
+            Output.WithBackground(ConsoleColor.DarkCyan, () => {
                 Console.WriteLine("== Keybindings ==");
             });
-            Helpers.WithForeground(ConsoleColor.White, () => {
-                    Console.WriteLine($" [Enter] Show item");
-                    Console.WriteLine($" [Backspace] Back");
-                    Console.WriteLine($" [I] New item  [H] Help [Q] Quit");
-                    Console.WriteLine($" [E] Edit item [D] Delete item");
-                    Console.WriteLine($" [J] Next item [K] Prev item");
-                    Console.WriteLine($" [N] Next Page [P] Prev Page");
+            Output.WithForeground(ConsoleColor.White, () => {
+                    Output.WriteLineWrapping($" [Enter] Show item");
+                    Output.WriteLineWrapping($" [Backspace] Back");
+                    Output.WriteLineWrapping($" [I] New item  [H] Help [Q] Quit");
+                    Output.WriteLineWrapping($" [E] Edit item [D] Delete item");
+                    Output.WriteLineWrapping($" [G] First item [Shift+G] Last item");
+                    Output.WriteLineWrapping($" [J] Next item [K] Prev item");
+                    Output.WriteLineWrapping($" [Shift+J] Move item [Shift+K] Move item");
+                    Output.WriteLineWrapping($" [N] Next Page [P] Prev Page");
                     });
         }
 

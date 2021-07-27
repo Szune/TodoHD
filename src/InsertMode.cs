@@ -38,17 +38,17 @@ namespace TodoHD
             Console.CursorVisible = true;
             Console.WriteLine("== Inserting new item ==");
             Console.WriteLine("Title:");
-            var title = Helpers.GetNonEmptyString();
+            var title = Input.GetNonEmptyString();
 
             Console.WriteLine("Description (<br> for newlines):");
-            var description = Helpers.GetNonEmptyString().Replace("<br>", Environment.NewLine);
+            var description = Input.GetNonEmptyString().Replace("<br>", Environment.NewLine);
 
             //Console.WriteLine("Category:");
             //var category = Helpers.GetNonEmptyString();
             var category = "";
 
             Console.WriteLine("Priority:");
-            var priority = Helpers.GetPriority();
+            var priority = Input.GetPriority();
 
             editor.InsertItem(new(-1, -1, title, description, category, priority));
             Console.CursorVisible = false;
