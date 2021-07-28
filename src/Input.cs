@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SaferVariants;
 
 namespace TodoHD
 {
@@ -27,13 +28,21 @@ namespace TodoHD
     {
         public static string GetNonEmptyString()
         {
-            Console.Write(">");
             string text;
-            while(string.IsNullOrWhiteSpace((text = Console.ReadLine())))
+            do
             {
                 Console.Write(">");
-            }
+            } while (string.IsNullOrWhiteSpace(text = Console.ReadLine()));
+            
             return text;
+        }
+        
+        public static IOption<string> GetString()
+        {
+            string text = Console.ReadLine();
+            return string.IsNullOrEmpty(text) 
+                ? Option.None<string>() 
+                : Option.Some(text);
         }
         
         public static Priority GetPriority()

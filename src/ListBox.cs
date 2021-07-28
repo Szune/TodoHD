@@ -46,13 +46,14 @@ namespace TodoHD
 
         public void Update()
         {
-
             var items = _itemsFactory();
             if(OrderBy.IsSome(out var ordering))
             {
                 items = ordering(items);
             }
             _items = items.ToList();
+            // fix selection after removal
+            _selected = Math.Clamp(_selected, 0, Math.Max(0, _items.Count - 1));
         }
 
         public void Print()

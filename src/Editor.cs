@@ -37,10 +37,10 @@ namespace TodoHD
         public int NextId => _items.Values.Select(s => s.Id).DefaultIfEmpty(0).Max() + 1;
         public int NextOrder => _items.Values.Select(s => s.Order).DefaultIfEmpty(0).Max() + 1;
 
-        public IEnumerable<TodoItem> GetItems() => 
+        public IEnumerable<TodoItem> GetItems() =>
             _items.Values
-            .OrderByDescending(i => (int)i.Priority)
-            .ThenBy(i => i.Order);
+                .OrderByDescending(i => (int) i.Priority)
+                .ThenBy(i => i.Order);
 
         public void Load()
         {
@@ -77,7 +77,16 @@ namespace TodoHD
         public int ItemsPerPage => Console.BufferHeight / 5;
         public int Page {get;private set;} = 1;
         public int Item {get;private set;} = 1;
-        public int MaxPage => Math.Max(1, _items.Count / ItemsPerPage);
+        public int MaxPage
+        {
+            get
+            {
+                var maxPage = Math.Max(1, _items.Count / ItemsPerPage);
+                if (maxPage * ItemsPerPage < _items.Count)
+                    ++maxPage;
+                return maxPage;
+            }
+        }
 
         public TodoItem GetSelectedItem()
         {
@@ -121,7 +130,15 @@ namespace TodoHD
                         }
                     });
         }
-
+        
+        private void FullUpdateCurrent()
+        {
+            var current = _modes.Peek();
+            Item = Math.Clamp(Item, 1, Math.Max(1, ItemsPerPage));
+            current.Init(this);
+            current.PrintUI(this);
+        }
+        
         private void PrintCurrent()
         {
             _modes.Peek().PrintUI(this);
@@ -134,20 +151,20 @@ namespace TodoHD
             PrintCurrent();
             if(immediate)
             {
-                _modes.Peek().KeyEvent(new(' ', (ConsoleKey)0, false, false, false), this);
+                _modes.Peek().KeyEvent(new(' ', 0, false, false, false), this);
             }
         }
 
         public void NextPage()
         {
             Page = Math.Clamp(Page + 1, 1, MaxPage);
-            PrintCurrent();
+            FullUpdateCurrent();
         }
 
         public void PrevPage()
         {
             Page = Math.Clamp(Page - 1, 1, MaxPage);
-            PrintCurrent();
+            FullUpdateCurrent();
         }
 
         private bool MoveUp(IHaveOrder current, IEnumerable<IHaveOrder> items)
@@ -259,19 +276,19 @@ namespace TodoHD
 
         public void NextItem()
         {
-            Item = Math.Clamp(Item + 1, 1, Math.Max(1,_items.Count));
+            Item = Math.Clamp(Item + 1, 1, Math.Max(1, ItemsPerPage));
             PrintCurrent();
         }
 
         public void PrevItem()
         {
-            Item = Math.Clamp(Item - 1, 1, Math.Max(1,_items.Count));
+            Item = Math.Clamp(Item - 1, 1, Math.Max(1, ItemsPerPage));
             PrintCurrent();
         }
 
         public void LastItem()
         {
-            Item = Math.Max(1,_items.Count);
+            Item = Math.Max(1, ItemsPerPage);
             PrintCurrent();
         }
 
@@ -318,8 +335,7 @@ namespace TodoHD
         public void PopMode()
         {
             _modes.Pop();
-            _modes.Peek().Init(this);
-            PrintCurrent();
+            FullUpdateCurrent();
         }
 
         public void Start()

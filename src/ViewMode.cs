@@ -190,12 +190,16 @@ namespace TodoHD
         {
             Console.WriteLine("Step text:");
             Console.CursorVisible = true;
-            var text = Input.GetNonEmptyString();
+            var maybeText = Input.GetString();
+            maybeText.Then(text =>
+            {
+                _item.Steps.Add(new TodoStep{ Text = text, Order = NextOrder });
+                _list.Update();
+                editor.Save();
+            });
             Console.CursorVisible = false;
-            _item.Steps.Add(new(){ Text = text, Order = NextOrder });
             Init(editor);
             PrintUI(editor);
-            editor.Save();
         }
 
         void DeleteStep(Editor editor)
@@ -213,6 +217,7 @@ namespace TodoHD
             if(delete.ToUpperInvariant() == "Y")
             {
                 _item.Steps.Remove(_list.SelectedItem);
+                _list.Update();
                 editor.Save();
             }
 

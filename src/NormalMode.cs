@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -29,24 +30,28 @@ namespace TodoHD
         public void Init(Editor editor)
         {
             editor.PrintHelpLine(true);
-            _list ??= 
-                new(
-                    editor
+            _list ??=
+                new ListBox<TodoItem>(
+                    itemsFactory: () => editor
                         .GetItems()
                         .Skip(editor.ItemsPerPage * (editor.Page - 1))
-                        .Take(editor.ItemsPerPage)
-                        .ToList,
-                    item =>     
-                        item.Priority switch {
+                        .Take(editor.ItemsPerPage),
+                    formatter: item =>
+                        item.Priority switch
+                        {
                             Priority.Whenever => " * ",
                             Priority.Urgent => " (!) ",
                             _ => "-"
                         } + item.Title)
-            {
-                OrderBy = Option.Some<Func<IEnumerable<TodoItem>, IEnumerable<TodoItem>>>(it => it.OrderByDescending(x => (int)x.Priority).ThenBy(x => x.Order))
-            };
-
+                {
+                    OrderBy = Option.Some<Func<IEnumerable<TodoItem>, IEnumerable<TodoItem>>>(
+                        it =>
+                            it.OrderByDescending(x => (int) x.Priority)
+                                .ThenBy(x => x.Order))
+                };
+            _list.Update();
         }
+
         public void PrintUI(Editor editor)
         {
             PrintItems(editor);
@@ -54,7 +59,7 @@ namespace TodoHD
 
         public void KeyEvent(ConsoleKeyInfo key, Editor editor)
         {
-            switch(key.Key)
+            switch (key.Key)
             {
                 case ConsoleKey.Enter:
                     editor.PushMode(new ViewMode(_list.SelectedItem));
@@ -80,24 +85,25 @@ namespace TodoHD
                 case ConsoleKey.G:
                     if (key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        if(_list.SelectLast())
+                        if (_list.SelectLast())
                         {
                             editor.LastItem();
                         }
                     }
                     else
                     {
-                        if(_list.SelectFirst())
+                        if (_list.SelectFirst())
                         {
                             editor.FirstItem();
                         }
                     }
+
                     break;
                 case ConsoleKey.DownArrow:
                 case ConsoleKey.J:
-                    if(key.Modifiers == ConsoleModifiers.Shift)
+                    if (key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        if(editor.MoveItemDown())
+                        if (editor.MoveItemDown())
                         {
                             _list.Update();
                             _list.SelectNext();
@@ -106,17 +112,18 @@ namespace TodoHD
                     }
                     else
                     {
-                        if(_list.SelectNext())
+                        if (_list.SelectNext())
                         {
                             editor.NextItem();
                         }
                     }
+
                     break;
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.K:
-                    if(key.Modifiers == ConsoleModifiers.Shift)
+                    if (key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        if(editor.MoveItemUp())
+                        if (editor.MoveItemUp())
                         {
                             _list.Update();
                             _list.SelectPrevious();
@@ -125,19 +132,19 @@ namespace TodoHD
                     }
                     else
                     {
-                        if(_list.SelectPrevious())
+                        if (_list.SelectPrevious())
                         {
                             editor.PrevItem();
                         }
                     }
+
                     break;
             }
-
         }
-
-        void PrintItems(Editor editor)
+        
+        private void PrintItems(Editor editor)
         {
-            Console.SetCursorPosition(0,1);
+            Console.SetCursorPosition(0, 1);
             _list.Print();
         }
     }
