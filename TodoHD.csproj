@@ -6,6 +6,7 @@
     <TargetFramework>net6.0</TargetFramework>
 	<RuntimeIdentifier>win10-x64</RuntimeIdentifier>
 	<SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
+	<AnalysisLevel>latest-Recommended</AnalysisLevel>
 	<InvariantGlobalization>true</InvariantGlobalization>
 	<PublishReadyToRun>True</PublishReadyToRun>
 	<PublishTrimmed>true</PublishTrimmed>

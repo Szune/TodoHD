@@ -74,11 +74,10 @@ namespace TodoHD
                     });
         }
 
-        public int ItemsPerPage => Console.BufferHeight / 5;
-        public int PageDisplay => Page + 1;
-        public int MaxPageDisplay => MaxPage + 1;
+        public int ItemsPerPage => Math.Max(1, Console.BufferHeight - 3);
+        public int Item {get;private set;} = 0;
+        public int MaxItem => ItemsPerPage - 1;
         public int Page {get;private set;} = 0;
-        public int Item {get;private set;} = 1;
         public int MaxPage
         {
             get
@@ -92,6 +91,8 @@ namespace TodoHD
                 return pages;
             }
         }
+        public int PageDisplay => Page + 1;
+        public int MaxPageDisplay => MaxPage + 1;
 
         public TodoItem GetSelectedItem()
         {
@@ -99,7 +100,7 @@ namespace TodoHD
                 .Skip(ItemsPerPage * Page)
                 .Take(ItemsPerPage)
                 .Select((item,index) => new{item,index})
-                .First(it => Item == it.index + 1)
+                .First(it => Item == it.index)
                 .item;
         }
 
@@ -139,7 +140,7 @@ namespace TodoHD
         private void FullUpdateCurrent()
         {
             var current = _modes.Peek();
-            Item = Math.Clamp(Item, 1, Math.Max(1, ItemsPerPage));
+            Item = ClampItem(Item);
             current.Init(this);
             current.PrintUI(this);
         }
@@ -172,7 +173,7 @@ namespace TodoHD
             FullUpdateCurrent();
         }
 
-        private bool MoveUp(IHaveOrder current, IEnumerable<IHaveOrder> items)
+        private static bool MoveUp(IHaveOrder current, IEnumerable<IHaveOrder> items)
         {
             // TODO: might want to use a more efficient data structure,
             // possibly a mix of a hashmap and a sorted list
@@ -201,7 +202,7 @@ namespace TodoHD
         }
 
 
-        private bool MoveDown(IHaveOrder current, IEnumerable<IHaveOrder> items)
+        private static bool MoveDown(IHaveOrder current, IEnumerable<IHaveOrder> items)
         {
             var currentOrder = current.Order;
             var next = items
@@ -281,26 +282,34 @@ namespace TodoHD
 
         public void NextItem()
         {
-            Item = Math.Clamp(Item + 1, 1, Math.Max(1, ItemsPerPage));
+            Item = ClampItem(Item + 1);
             PrintCurrent();
         }
 
         public void PrevItem()
         {
-            Item = Math.Clamp(Item - 1, 1, Math.Max(1, ItemsPerPage));
+            Item = ClampItem(Item - 1);
             PrintCurrent();
         }
 
         public void LastItem()
         {
-            Item = Math.Max(1, ItemsPerPage);
+            Item = MaxItem;
             PrintCurrent();
         }
 
         public void FirstItem()
         {
-            Item = 1;
+            Item = 0;
             PrintCurrent();
+        }
+
+        private int ClampItem(int newValue)
+        {
+            return Math.Clamp(
+                    value: newValue,
+                    min: 0,
+                    max: Math.Max(0, MaxItem));
         }
 
         public void InsertItem(TodoItem item)
