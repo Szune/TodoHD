@@ -17,6 +17,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace TodoHD
 {
@@ -62,5 +63,11 @@ namespace TodoHD
     public interface IHaveOrder
     {
         int Order {get;set;}
+    }
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(Todo))]
+    internal partial class TodoHdContext : JsonSerializerContext
+    {
     }
 }

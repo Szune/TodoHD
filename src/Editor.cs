@@ -47,13 +47,13 @@ namespace TodoHD
             try
             {
                 var json = File.ReadAllText(_savePath);
-                var deserialized = JsonSerializer.Deserialize<Todo>(json);
+                var deserialized = JsonSerializer.Deserialize<Todo>(json, TodoHdContext.Default.Todo);
                 _items = deserialized.Items.ToDictionary(i => i.Id);
                 NormalizeItemOrder(_items.Values);
             }
             catch(FileNotFoundException)
             {
-                File.WriteAllText(_savePath, JsonSerializer.Serialize<Todo>(new() { Items = new() }));
+                File.WriteAllText(_savePath, JsonSerializer.Serialize<Todo>(new() { Items = new() }, TodoHdContext.Default.Todo));
             }
         }
 
@@ -75,23 +75,28 @@ namespace TodoHD
         }
 
         public int ItemsPerPage => Console.BufferHeight / 5;
-        public int Page {get;private set;} = 1;
+        public int PageDisplay => Page + 1;
+        public int MaxPageDisplay => MaxPage + 1;
+        public int Page {get;private set;} = 0;
         public int Item {get;private set;} = 1;
         public int MaxPage
         {
             get
             {
-                var maxPage = Math.Max(1, _items.Count / ItemsPerPage);
-                if (maxPage * ItemsPerPage < _items.Count)
-                    ++maxPage;
-                return maxPage;
+                var itemsPerPage = Math.Max(1, ItemsPerPage);
+                var pages = _items.Count / itemsPerPage;
+                if(pages > 0 &&
+                   pages * itemsPerPage >= _items.Count)
+                    --pages;
+
+                return pages;
             }
         }
 
         public TodoItem GetSelectedItem()
         {
             return GetItems()
-                .Skip(ItemsPerPage * (Page - 1))
+                .Skip(ItemsPerPage * Page)
                 .Take(ItemsPerPage)
                 .Select((item,index) => new{item,index})
                 .First(it => Item == it.index + 1)
@@ -157,13 +162,13 @@ namespace TodoHD
 
         public void NextPage()
         {
-            Page = Math.Clamp(Page + 1, 1, MaxPage);
+            Page = Math.Clamp(Page + 1, 0, MaxPage);
             FullUpdateCurrent();
         }
 
         public void PrevPage()
         {
-            Page = Math.Clamp(Page - 1, 1, MaxPage);
+            Page = Math.Clamp(Page - 1, 0, MaxPage);
             FullUpdateCurrent();
         }
 
@@ -319,7 +324,7 @@ namespace TodoHD
                 Console.Clear();
             }
             Output.WithForeground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"Page {Page}/{MaxPage} | [I] New item [H] Help [Q] Quit");
+                    Console.WriteLine($"Page {PageDisplay}/{MaxPageDisplay} | [I] New item [H] Help [Q] Quit");
                     });
         }
 
@@ -328,8 +333,9 @@ namespace TodoHD
         public void Save()
         {
             var items = new Todo {Items = _items.Values.ToList(), Categories = _categories};
+            // TODO: save a couple of backups
             File.WriteAllText(_savePath, JsonSerializer.Serialize<Todo>(items, 
-                        new() { WriteIndented = true }));
+                        TodoHdContext.Default.Todo));
         }
 
         public void PopMode()

@@ -39,6 +39,7 @@ namespace TodoHD
         
         public static IOption<string> GetString()
         {
+            Console.Write(">");
             string text = Console.ReadLine();
             return string.IsNullOrEmpty(text) 
                 ? Option.None<string>() 

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
 	<AssemblyName>todo</AssemblyName>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
 	<RuntimeIdentifier>win10-x64</RuntimeIdentifier>
 	<SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
 	<InvariantGlobalization>true</InvariantGlobalization>

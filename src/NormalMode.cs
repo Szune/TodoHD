@@ -34,7 +34,7 @@ namespace TodoHD
                 new ListBox<TodoItem>(
                     itemsFactory: () => editor
                         .GetItems()
-                        .Skip(editor.ItemsPerPage * (editor.Page - 1))
+                        .Skip(editor.ItemsPerPage * editor.Page)
                         .Take(editor.ItemsPerPage),
                     formatter: item =>
                         item.Priority switch

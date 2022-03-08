@@ -17,6 +17,7 @@
 //
 using System;
 using System.IO;
+using System.Linq;
 
 namespace TodoHD
 {
@@ -25,7 +26,7 @@ namespace TodoHD
         static void Main(string[] args)
         {
             string path;
-            if(args.Length == 1 && args[0] == ".")
+            if(args.Length > 0 && args[0] == ".")
             {
                 path = "todohd.json";
             }
@@ -33,9 +34,19 @@ namespace TodoHD
             {
                 path = Path.Combine(AppContext.BaseDirectory, "todohd.json");
             }
+
             Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
             var editor = new Editor(path);
             editor.Load();
+
+            if (args.Contains("--list"))
+            {
+                Console.WriteLine("== TodoHD ==");
+                var items = editor.GetItems();
+                Console.WriteLine(string.Join("\r\n", items.Select(i => i.Title)));
+                return;
+            }
+
             editor.PushMode(new NormalMode());
             editor.Start();
         }

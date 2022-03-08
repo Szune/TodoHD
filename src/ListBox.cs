@@ -69,7 +69,15 @@ namespace TodoHD
             
             for(var i = 0; i < _items.Count; i++)
             {
-                lines += Output.WriteLineWrapping(sb, _selected == i ? $" >{_formatter(_items[i])}" : _formatter(_items[i]), bufferWidth);
+                var formatted = _formatter(_items[i]);
+                if(_selected == i)
+                {
+                    lines += Output.WriteLineWrapping(sb, $" \x1b[1;36m>{formatted}\x1b[0m", bufferWidth);
+                }
+                else
+                {
+                    lines += Output.WriteLineWrapping(sb, formatted, bufferWidth);
+                }
             }
 
             if (_lastLineAmount > lines)
