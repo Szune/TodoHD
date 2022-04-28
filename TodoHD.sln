@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoHD", "src\TodoHD.csproj", "{769DB093-3334-4DDB-A6FA-8D46D8D8DB82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoHD", "src\TodoHD\TodoHD.csproj", "{769DB093-3334-4DDB-A6FA-8D46D8D8DB82}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TodoHD.Tests", "test\TodoHD.Tests\TodoHD.Tests.csproj", "{8F0DADE7-6CB0-4955-B02F-4CA3171D3D9E}"
 EndProject
