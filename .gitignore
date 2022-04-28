@@ -6,3 +6,4 @@ publish/
 .idea/
 publish_test/
 todohd.json.*.bak
+*.log

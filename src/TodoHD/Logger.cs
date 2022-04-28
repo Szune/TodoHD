@@ -46,7 +46,7 @@ public static class Logger
     {
         try
         {
-            File.AppendAllText(GetLogPath(), $"{DateTime.Now:yyyy-MM-dd hh:mm:ss} {msg}");
+            File.AppendAllText(GetLogPath(), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {msg}");
         }
         catch
         {

@@ -119,19 +119,6 @@ public class ViewMode : IMode
             .ForEach(part =>
                 Output.WriteLineWrapping($"{new string(' ', 2)}{part}"));
 
-        Logger.LogDebug(
-        _item.Description
-            .ExceptEndingNewline()
-            .ReplaceLineEndings("\n")
-            .Split('\n')
-            .Aggregate(new StringBuilder(Environment.NewLine), (sb, el) =>
-            {
-                Output.WriteLineWrapping(sb, $"{new string(' ', 2)}{el}", Console.BufferWidth);
-                return sb;
-            })
-            .ToString()
-            );
-
         Console.WriteLine();
         Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, "== Steps =="));
 

@@ -351,10 +351,10 @@ public class Editor
     public void Save(bool backup = false)
     {
         var items = new Todo {Items = _items.Values.ToList(), Categories = _categories};
-        // save a daily backup (should have a way to remove some of those on command)
         if (backup)
         {
-            var backupPath = $"{_savePath}.{DateTime.Now:yyyyMMddhhmmss}.bak";
+            // force a backup
+            var backupPath = $"{_savePath}.{DateTime.Now:yyyyMMddHHmmss}.bak";
             try
             {
                 File.WriteAllText(backupPath, JsonSerializer.Serialize<Todo>(items,
@@ -367,6 +367,7 @@ public class Editor
         }
         else
         {
+            // save a daily backup (should have a way to remove some of those on command)
             var backupPath = $"{_savePath}.{DateTime.Today:yyyyMMdd}.bak";
             if (!File.Exists(backupPath))
             {

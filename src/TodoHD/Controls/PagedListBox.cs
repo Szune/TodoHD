@@ -254,7 +254,7 @@ public class PagedListBox<T>
     // TODO: rethink the selection code, feels like there is a much better way to do all this
     public bool SelectNext()
     {
-        // TODO: Kan inte byta till sista sidan med j-k om det bara är 1 item på sista sidan
+        // TODO: can't move to next page using j-k if there is only one item on the next page
         
         var changed = _selected != (_selected = Math.Clamp(_selected + 1, 0, Math.Max(0, Items.Count - 1)));
         
