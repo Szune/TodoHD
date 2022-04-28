@@ -17,19 +17,30 @@
 //
 using System;
 
-namespace TodoHD;
-
-public interface IMode
+namespace TodoHD
 {
-    void Init(Editor editor);
-    void PrintUI(Editor editor);
-    void KeyEvent(ConsoleKeyInfo key, Editor editor);
-    // /// <summary>
-    // /// Fired when state is modified by the user.
-    // /// </summary>
-    // event EventHandler Modified;
-    // /// <summary>
-    // /// Fired when the user navigates (enter/exit todo item)
-    // /// </summary>
-    // event EventHandler Navigated;
+    public class EditString
+    {
+        /*
+         * multiple LinkedLists for insertion/deletion performance
+         * "jump lists"? (multiple smaller linkedlists connected through one main linkedlist)
+         */
+
+    }
+
+    public class TextBox
+    {
+        public string GetInput()
+        {
+            var pos = Console.CursorTop;
+            Console.SetCursorPosition(0, pos);
+            
+            ConsoleKeyInfo read;
+            while((read = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            {
+                
+            }
+            return "";
+        }
+    }
 }

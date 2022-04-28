@@ -1,4 +1,4 @@
-//
+﻿//
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
 // Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
@@ -15,21 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-using System;
 
 namespace TodoHD;
 
-public interface IMode
+public static class Version
 {
-    void Init(Editor editor);
-    void PrintUI(Editor editor);
-    void KeyEvent(ConsoleKeyInfo key, Editor editor);
-    // /// <summary>
-    // /// Fired when state is modified by the user.
-    // /// </summary>
-    // event EventHandler Modified;
-    // /// <summary>
-    // /// Fired when the user navigates (enter/exit todo item)
-    // /// </summary>
-    // event EventHandler Navigated;
+    public const string Current = "1.1.0";
 }

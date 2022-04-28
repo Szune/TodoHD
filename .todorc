@@ -1,0 +1,20 @@
+### Available themes: Dark, Light
+### Color settings can be in the following forms:
+### Fg(ColorName)
+### Bg(ColorName)
+### Color(FgColorName, BgColorName)
+### Comments have to be placed on the beginning of a line
+
+# Theme = Light
+# 
+# HelpModeHeader = Fg(DarkBlue)
+# HelpModeText = Fg(Black)
+# HelpModeKey = Color(White, DarkBlue)
+# HelpLine = Fg(DarkGreen)
+# TodoItemHeader = Fg(DarkRed)
+# TodoItem = Fg(None)
+# TodoItemSelected = Color(White, Blue)
+# TodoItemUrgent = Color(Black, Yellow)
+# TodoItemUrgentSelected = Color(White, Blue)
+# StepCompleted = Color(Gray, DarkGray)
+# StepCompletedSelected = Color(White, DarkGray)

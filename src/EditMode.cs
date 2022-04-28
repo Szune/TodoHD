@@ -1,6 +1,6 @@
 //
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
-// Copyright (C) 2021  Carl Erik Patrik Iwarson
+// Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -18,167 +18,190 @@
 using System;
 using System.Linq;
 
-namespace TodoHD
+namespace TodoHD;
+
+public class EditMode : IMode
 {
-    public class EditMode : IMode
+    private TodoItem _item;
+    private bool _changed;
+    private string _tmpTitle;
+    private string _tmpDescription;
+    private Priority _tmpPriority;
+    private readonly HelpLine _help;
+
+    public EditMode()
     {
-        TodoItem _item;
-        bool _changed = false;
-        string _tmpTitle;
-        string _tmpDescription;
-        Priority _tmpPriority;
-        HelpLine _help;
+        _help = new HelpLine("[T] Title [D] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
+    }
 
-        public EditMode()
+    private void _initUI()
+    {
+        Console.Clear();
+        _help.Print();
+    }
+
+    public void Init(Editor editor)
+    { 
+        _item = editor.GetSelectedItem();
+        _tmpTitle = _item.Title;
+        _tmpDescription = _item.Description;
+        _tmpPriority = _item.Priority;
+        _initUI();
+    }
+
+    public void PrintUI(Editor editor)
+    {
+        Console.SetCursorPosition(0, _help.Height);
+        if(_changed)
         {
-            _help = new HelpLine("[T] Title [D] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
+            Console.WriteLine($"<< Editing (changed!) >>");
         }
-
-        void _initUI()
+        else
         {
-            Console.Clear();
-            _help.Print();
+            Console.WriteLine($"<< Editing >>");
         }
+        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, $"== {_tmpTitle} =="));
 
-        public void Init(Editor editor)
-        { 
-            _item = editor.GetSelectedItem();
-            _tmpTitle = _item.Title;
-            _tmpDescription = _item.Description;
-            _tmpPriority = _item.Priority;
-            _initUI();
-        }
-
-        public void PrintUI(Editor editor)
+        switch(_tmpPriority)
         {
-            Console.SetCursorPosition(0, _help.Height);
-            if(_changed)
-            {
-                Console.WriteLine($"<< Editing (changed!) >>");
-            }
-            else
-            {
-                Console.WriteLine($"<< Editing >>");
-            }
-            Output.WithForeground(ConsoleColor.Magenta, () => {
-            Console.WriteLine($"== {_tmpTitle} ==");
-            });
-
-            switch(_tmpPriority)
-            {
-                case Priority.Whenever:
-                    Console.Write("   ");
-                    Output.WithBackground(ConsoleColor.Green, () => {
+            case Priority.Whenever:
+                Console.Write("   ");
+                Output.WithBackground(ConsoleColor.Green, () => {
                     Console.WriteLine($"<{_tmpPriority}>");
-                    });
-                    break;
-                case Priority.Urgent:
-                    Console.Write("   ");
-                    Output.WithBackground(ConsoleColor.Red, () => {
+                });
+                break;
+            case Priority.Urgent:
+                Console.Write("   ");
+                Output.WithBackground(ConsoleColor.Red, () => {
                     Console.WriteLine($"*{_tmpPriority}*");
-                    });
-                    break;
-            }
-            _tmpDescription
-                .Split(Environment.NewLine)
-                .ToList()
-                .ForEach(part =>
-                    Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
+                });
+                break;
         }
+        _tmpDescription
+            .ExceptEndingNewline()
+            .ReplaceLineEndings("\n")
+            .Split('\n')
+            .ToList()
+            .ForEach(part =>
+                Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
+        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, $"== {_tmpTitle} =="));
+    }
 
-        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+    public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+    {
+        if (_help.KeyEvent(key, editor))
         {
-            if (_help.KeyEvent(key, editor))
-            {
-                Init(editor);
-                PrintUI(editor);
-                return;
-            }
+            Init(editor);
+            PrintUI(editor);
+            return;
+        }
             
-            switch(key.Key)
-            {
-                case ConsoleKey.T:
-                    SetTitle(editor);
-                    break;
-                case ConsoleKey.D:
-                    SetDescription(editor);
-                    break;
-                case ConsoleKey.P:
-                    TogglePriority(editor);
-                    break;
-                case ConsoleKey.W:
-                    SaveAndQuit(editor);
-                    break;
-                case ConsoleKey.S:
-                    Save(editor);
-                    break;
-                case ConsoleKey.Backspace:
-                    if(_changed)
-                    {
-                        Output.WithForeground(ConsoleColor.Red, () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
-                    }
-                    else
-                    {
-                        editor.PopMode();
-                    }
-                    break;
-            }
-        }
-
-        void SetTitle(Editor editor)
+        switch(key.Key)
         {
-            Console.WriteLine("New title:");
-            Console.CursorVisible = true;
-            var text = Input.GetNonEmptyString();
-            Console.CursorVisible = false;
+            case ConsoleKey.T:
+                SetTitle(editor);
+                break;
+            case ConsoleKey.D:
+                SetDescription(editor);
+                break;
+            case ConsoleKey.P:
+                TogglePriority(editor);
+                break;
+            case ConsoleKey.W:
+                SaveAndQuit(editor);
+                break;
+            case ConsoleKey.S:
+                Save(editor);
+                break;
+            case ConsoleKey.V:
+                VisualEditDescription(editor);
+                break;
+            case ConsoleKey.Backspace:
+                if(_changed)
+                {
+                    Output.WithForeground(ConsoleColor.Red, () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
+                }
+                else
+                {
+                    editor.PopMode();
+                }
+                break;
+        }
+    }
+
+    void SetTitle(Editor editor)
+    {
+        Console.WriteLine("New title:");
+        Console.CursorVisible = true;
+        var maybeText = Input.GetString();
+        Console.CursorVisible = false;
+        maybeText.Then(text =>
+        {
             _changed = true;
             _tmpTitle = text;
-            _initUI();
-            PrintUI(editor);
-        }
+        });
+        _initUI();
+        PrintUI(editor);
+    }
 
-        void SetDescription(Editor editor)
+    void SetDescription(Editor editor)
+    {
+        Console.WriteLine("New description (<br> for newlines):");
+        Console.CursorVisible = true;
+        var maybeText = Input.GetString();
+        Console.CursorVisible = false;
+        maybeText.Then(text =>
         {
-            Console.WriteLine("New description (<br> for newlines):");
-            Console.CursorVisible = true;
-            var text = Input.GetNonEmptyString().Replace("<br>", Environment.NewLine);
-            Console.CursorVisible = false;
+            _changed = true;
+            _tmpDescription = text.Replace("<br>", Environment.NewLine);
+        });
+        _initUI();
+        PrintUI(editor);
+    }
+        
+    void VisualEditDescription(Editor editor)
+    {
+        var extEditor = new ExternalEditor(_tmpDescription);
+        var edit = extEditor.Edit();
+        edit.Then(text =>
+        {
             _changed = true;
             _tmpDescription = text;
-            _initUI();
-            PrintUI(editor);
-        }
+        });
+            
+        _initUI();
+        PrintUI(editor);
+    }
         
-        void TogglePriority(Editor editor)
-        {
-            _tmpPriority = _tmpPriority switch {
-                Priority.Whenever => Priority.Urgent,
-                Priority.Urgent => Priority.Whenever,
-                _ => Priority.Whenever,
-            };
-            _changed = true;
-            _initUI();
-            PrintUI(editor);
-        }
+    void TogglePriority(Editor editor)
+    {
+        _tmpPriority = _tmpPriority switch {
+            Priority.Whenever => Priority.Urgent,
+            Priority.Urgent => Priority.Whenever,
+            _ => Priority.Whenever,
+        };
+        _changed = true;
+        _initUI();
+        PrintUI(editor);
+    }
 
-        void Save(Editor editor)
-        {
-            _item.Title = _tmpTitle;
-            _item.Description = _tmpDescription;
-            _item.Priority = _tmpPriority;
-            editor.Save();
-            _changed = false;
-            _initUI();
-            PrintUI(editor);
-        }
+    void Save(Editor editor)
+    {
+        _item.Title = _tmpTitle;
+        _item.Description = _tmpDescription;
+        _item.Priority = _tmpPriority;
+        editor.Save();
+        _changed = false;
+        _initUI();
+        PrintUI(editor);
+    }
 
-        void SaveAndQuit(Editor editor)
-        {
-            _item.Title = _tmpTitle;
-            _item.Description = _tmpDescription;
-            _item.Priority = _tmpPriority;
-            editor.Save();
-            editor.PopMode();
-        }
+    void SaveAndQuit(Editor editor)
+    {
+        _item.Title = _tmpTitle;
+        _item.Description = _tmpDescription;
+        _item.Priority = _tmpPriority;
+        editor.Save();
+        editor.PopMode();
     }
 }

@@ -3,3 +3,6 @@ obj/
 build.lb
 todohd.json
 publish/
+.idea/
+publish_test/
+todohd.json.*.bak

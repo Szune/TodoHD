@@ -1,4 +1,4 @@
-//
+﻿//
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
 // Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
@@ -15,21 +15,35 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-using System;
 
 namespace TodoHD;
 
-public interface IMode
+public static class Extensions
 {
-    void Init(Editor editor);
-    void PrintUI(Editor editor);
-    void KeyEvent(ConsoleKeyInfo key, Editor editor);
-    // /// <summary>
-    // /// Fired when state is modified by the user.
-    // /// </summary>
-    // event EventHandler Modified;
-    // /// <summary>
-    // /// Fired when the user navigates (enter/exit todo item)
-    // /// </summary>
-    // event EventHandler Navigated;
+    public static int OccurrencesOf(this string s, char toFind)
+    {
+        var count = 0;
+        for(var n = s.Length; --n >= 0;)
+            if(s[n] == toFind)
+                count++;
+        return count;
+    }
+
+    public static int CountNewLines(this string s)
+        => s.OccurrencesOf('\n');
+
+    public static string ExceptEndingNewline(this string s)
+    {
+        if (s.Length < 1)
+            return s;
+        
+        if (s[^1] == '\n')
+        {
+            return s.Length == 1 
+                ? "" 
+                : s[..^2];
+        }
+
+        return s;
+    }
 }

@@ -1,6 +1,6 @@
 //
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
-// Copyright (C) 2021  Carl Erik Patrik Iwarson
+// Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -16,46 +16,43 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
-namespace TodoHD
-{
-    public class DeleteMode : IMode
-    {
-        public void Init(Editor editor) { }
-        public void PrintUI(Editor editor)
-        {
-            var item = editor.GetSelectedItem();
-            Console.Clear();
-            Console.WriteLine($"== {item.Title} ==");
-            Console.WriteLine($"   <{item.Priority}>");
-            item
-                .Description
-                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                .ToList()
-                .ForEach(part =>
-                    Console.WriteLine($"{new string(' ', 2)}{part}"));
+namespace TodoHD;
 
-            Console.WriteLine();
-            Console.WriteLine("Are you sure you want to delete? (y/n)");
-            Console.CursorVisible = true;
-            var delete = Input.GetNonEmptyString();
-            Console.CursorVisible = false;
-            if(delete.ToUpperInvariant() == "Y")
+public class DeleteMode : IMode
+{
+    public void Init(Editor editor) { }
+    public void PrintUI(Editor editor)
+    {
+        var item = editor.GetSelectedItem();
+        Console.Clear();
+        Console.WriteLine($"== {item.Title} ==");
+        Console.WriteLine($"   <{item.Priority}>");
+        item
+            .Description
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            .ToList()
+            .ForEach(part =>
+                Console.WriteLine($"{new string(' ', 2)}{part}"));
+
+        Console.WriteLine();
+        Console.WriteLine("Are you sure you want to delete? (y/n)");
+        Console.CursorVisible = true;
+        var maybeDelete = Input.GetString();
+        Console.CursorVisible = false;
+        maybeDelete.Then(it =>
+        {
+            if (string.Equals(it, "Y", StringComparison.OrdinalIgnoreCase))
             {
                 editor.DeleteItemById(item.Id);
-                editor.PopMode();
             }
-            else
-            {
-                editor.PopMode();
-            }
-        }
-
-        public void KeyEvent(ConsoleKeyInfo key, Editor editor)
-        {
-        }
-
+        });
+        editor.PopMode();
     }
+
+    public void KeyEvent(ConsoleKeyInfo key, Editor editor)
+    {
+    }
+
 }
