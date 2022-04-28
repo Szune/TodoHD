@@ -3,7 +3,7 @@
 ### Fg(ColorName)
 ### Bg(ColorName)
 ### Color(FgColorName, BgColorName)
-### Comments have to be placed on the beginning of a line
+### Comments have to be placed at the beginning of a line
 
 # Theme = Light
 # 
