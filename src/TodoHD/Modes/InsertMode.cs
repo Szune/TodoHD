@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class InsertMode : IMode
 {
@@ -46,7 +47,7 @@ public class InsertMode : IMode
         var category = "";
 
         Console.WriteLine("Priority:");
-        var height = Console.BufferHeight - Console.CursorTop - 3;
+        var height = Console.WindowHeight - Console.CursorTop - 3;
         Console.CursorVisible = false;
         var priority = Input.GetPriority(height);
         editor.InsertItem(new(-1, -1, title, description, category, priority));

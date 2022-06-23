@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 using System.Linq;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class EditMode : IMode
 {
@@ -31,7 +32,7 @@ public class EditMode : IMode
 
     public EditMode()
     {
-        _help = new HelpLine("[T] Title [D] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
+        _help = new HelpLine("[T] Title [R] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
     }
 
     private void _initUI()
@@ -41,7 +42,7 @@ public class EditMode : IMode
     }
 
     public void Init(Editor editor)
-    { 
+    {
         _item = editor.GetSelectedItem();
         _tmpTitle = _item.Title;
         _tmpDescription = _item.Description;
@@ -52,7 +53,7 @@ public class EditMode : IMode
     public void PrintUI(Editor editor)
     {
         Console.SetCursorPosition(0, _help.Height);
-        if(_changed)
+        if (_changed)
         {
             Console.WriteLine($"<< Editing (changed!) >>");
         }
@@ -60,31 +61,28 @@ public class EditMode : IMode
         {
             Console.WriteLine($"<< Editing >>");
         }
-        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, $"== {_tmpTitle} =="));
 
-        switch(_tmpPriority)
+        Console.WriteLine(Settings.Instance.Theme.TodoItemHeader.Apply($"== {_tmpTitle} =="));
+
+        switch (_tmpPriority)
         {
             case Priority.Whenever:
-                Console.Write("   ");
-                Output.WithBackground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"<{_tmpPriority}>");
-                });
+                Console.WriteLine($"   {BackgroundColors.Green.Apply($"<{_tmpPriority}>")}");
                 break;
             case Priority.Urgent:
-                Console.Write("   ");
-                Output.WithBackground(ConsoleColor.Red, () => {
-                    Console.WriteLine($"*{_tmpPriority}*");
-                });
+                Console.WriteLine($"   {BackgroundColors.Red.Apply($"*{_tmpPriority}*")}");
                 break;
         }
+
         _tmpDescription
             .ExceptEndingNewline()
             .ReplaceLineEndings("\n")
             .Split('\n')
             .ToList()
             .ForEach(part =>
-                Console.WriteLine($"{new string(' ', 2)}{part}{new string(' ', Console.BufferWidth - 1 - 2 - part.Length)}"));
-        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, $"== {_tmpTitle} =="));
+                Console.WriteLine(
+                    $"{new string(' ', 2)}{part}{new string(' ', Console.WindowWidth - 1 - 2 - part.Length)}"));
+        Console.WriteLine(Settings.Instance.Theme.TodoItemHeader.Apply($"== {_tmpTitle} =="));
     }
 
     public void KeyEvent(ConsoleKeyInfo key, Editor editor)
@@ -95,13 +93,13 @@ public class EditMode : IMode
             PrintUI(editor);
             return;
         }
-            
-        switch(key.Key)
+
+        switch (key.Key)
         {
             case ConsoleKey.T:
                 SetTitle(editor);
                 break;
-            case ConsoleKey.D:
+            case ConsoleKey.R:
                 SetDescription(editor);
                 break;
             case ConsoleKey.P:
@@ -117,14 +115,16 @@ public class EditMode : IMode
                 VisualEditDescription(editor);
                 break;
             case ConsoleKey.Backspace:
-                if(_changed)
+                if (_changed)
                 {
-                    Output.WithForeground(ConsoleColor.Red, () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
+                    Output.WithForeground(ConsoleColor.Red,
+                        () => Console.WriteLine("Unsaved changes! Quit with Q to discard changes."));
                 }
                 else
                 {
                     editor.PopMode();
                 }
+
                 break;
         }
     }
@@ -158,7 +158,7 @@ public class EditMode : IMode
         _initUI();
         PrintUI(editor);
     }
-        
+
     void VisualEditDescription(Editor editor)
     {
         var extEditor = new ExternalEditor(_tmpDescription);
@@ -168,14 +168,15 @@ public class EditMode : IMode
             _changed = true;
             _tmpDescription = text;
         });
-            
+
         _initUI();
         PrintUI(editor);
     }
-        
+
     void TogglePriority(Editor editor)
     {
-        _tmpPriority = _tmpPriority switch {
+        _tmpPriority = _tmpPriority switch
+        {
             Priority.Whenever => Priority.Urgent,
             Priority.Urgent => Priority.Whenever,
             _ => Priority.Whenever,

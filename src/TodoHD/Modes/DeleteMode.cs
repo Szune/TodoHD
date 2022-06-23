@@ -15,14 +15,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 using System.Linq;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class DeleteMode : IMode
 {
-    public void Init(Editor editor) { }
+    public void Init(Editor editor)
+    {
+    }
+
     public void PrintUI(Editor editor)
     {
         var item = editor.GetSelectedItem();
@@ -54,5 +58,4 @@ public class DeleteMode : IMode
     public void KeyEvent(ConsoleKeyInfo key, Editor editor)
     {
     }
-
 }

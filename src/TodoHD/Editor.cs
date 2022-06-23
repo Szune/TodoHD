@@ -21,26 +21,30 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using TodoHD.Modes;
 
 namespace TodoHD;
 
 public class Editor
 {
     private readonly string _savePath;
+
     public Editor(string path)
     {
         _savePath = path;
     }
+
     Stack<IMode> _modes = new();
     Dictionary<int, TodoItem> _items = new();
     List<string> _categories = new();
+    private static DateTime _lastSave;
 
     public int NextId => _items.Values.Select(s => s.Id).DefaultIfEmpty(0).Max() + 1;
     public int NextOrder => _items.Values.Select(s => s.Order).DefaultIfEmpty(0).Max() + 1;
 
     public IEnumerable<TodoItem> GetItems() =>
         _items.Values
-            .OrderByDescending(i => (int) i.Priority)
+            .OrderByDescending(i => (int)i.Priority)
             .ThenBy(i => i.Order);
 
     public void Load()
@@ -71,36 +75,39 @@ public class Editor
     {
         items
             .OrderBy(i => i.Order)
-            .Select((item,index) => new { item, index })
+            .Select((item, index) => new { item, index })
             .ToList()
-            .ForEach(it => {
-                    it.item.Order = it.index + 1;
-                    it.item
-                        .Steps?
-                        .OrderBy(i => i.Order)
-                        .Select((item,index) => new { item, index })
-                        .ToList()
-                        .ForEach(step => step.item.Order = step.index + 1);
-                });
+            .ForEach(it =>
+            {
+                it.item.Order = it.index + 1;
+                it.item
+                    .Steps?
+                    .OrderBy(i => i.Order)
+                    .Select((item, index) => new { item, index })
+                    .ToList()
+                    .ForEach(step => step.item.Order = step.index + 1);
+            });
     }
 
-    public int ItemsPerPage => Math.Max(1, Console.BufferHeight - 3);
-    public int Item {get;private set;}
+    public int ItemsPerPage => Math.Max(1, Console.WindowHeight - 3);
+    public int Item { get; private set; }
     public int MaxItem => Math.Min(_items.Count - 1, ItemsPerPage - 1);
-    public int Page {get;private set;}
+    public int Page { get; private set; }
+
     public int MaxPage
     {
         get
         {
             var itemsPerPage = Math.Max(1, ItemsPerPage);
             var pages = _items.Count / itemsPerPage;
-            if(pages > 0 &&
-               pages * itemsPerPage >= _items.Count)
+            if (pages > 0 &&
+                pages * itemsPerPage >= _items.Count)
                 --pages;
 
             return pages;
         }
     }
+
     public int PageDisplay => Page + 1;
     public int MaxPageDisplay => MaxPage + 1;
 
@@ -109,7 +116,7 @@ public class Editor
         return GetItems()
             .Skip(ItemsPerPage * Page)
             .Take(ItemsPerPage)
-            .Select((item,index) => new{item,index})
+            .Select((item, index) => new { item, index })
             .First(it => Item == it.index)
             .item;
     }
@@ -119,8 +126,9 @@ public class Editor
         return _items.Values
             .Where(it => it.Priority == priority);
     }
-    
+
     public IEnumerable<string> GetCategories() => _categories;
+
     public void AddCategory(string name)
     {
         _categories.Add(name);
@@ -129,7 +137,7 @@ public class Editor
     public void RenameCategory(string oldName, string newName)
     {
         var index = _categories.FindIndex(n => string.Equals(n, oldName, StringComparison.InvariantCultureIgnoreCase));
-        if(index < 0)
+        if (index < 0)
         {
             return;
         }
@@ -139,14 +147,15 @@ public class Editor
         _items
             .Values
             .ToList()
-            .ForEach(i => {
-                    if(string.Equals(i.Category, oldName, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        i.Category = newName;
-                    }
-                });
+            .ForEach(i =>
+            {
+                if (string.Equals(i.Category, oldName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    i.Category = newName;
+                }
+            });
     }
-    
+
     private void FullUpdateCurrent()
     {
         var current = _modes.Peek();
@@ -154,7 +163,12 @@ public class Editor
         current.Init(this);
         current.PrintUI(this);
     }
-    
+
+    private void InitCurrent()
+    {
+        _modes.Peek().Init(this);
+    }
+
     private void PrintCurrent()
     {
         _modes.Peek().PrintUI(this);
@@ -163,9 +177,10 @@ public class Editor
     public void PushMode(IMode mode, bool immediate = false)
     {
         _modes.Push(mode);
-        _modes.Peek().Init(this);
+        InitCurrent();
         PrintCurrent();
-        if(immediate)
+
+        if (immediate)
         {
             _modes.Peek().KeyEvent(new(' ', 0, false, false, false), this);
         }
@@ -186,26 +201,28 @@ public class Editor
     private static bool MoveUp(IHaveOrder current, IEnumerable<IHaveOrder> items)
     {
         // TODO: might want to use a more efficient data structure,
-        // possibly a mix of a hashmap and a sorted list
-        // where you can correlate an id with an index
-        // and do a couple of if-checks on the previous item
-        // instead of iterating through everything every time
+        // TODO: also, keeping the order as sorted sequential integers could make it
+        // TODO: as easy as checking at most 3(?) items as long as the items themselves are in the order of the integers
+
         var currentOrder = current.Order;
         var next = items
             .Where(i => i.Order < currentOrder)
             .Aggregate(new { distance = 9999, winner = null as IHaveOrder },
-                    (acc, it) => {
-                        var    dist = currentOrder - it.Order;
-                        if(dist < acc.distance)
-                        {
-                            return new { distance = dist, winner = it };
-                        }
-                        return acc;
-                    });
-        if(next.winner == null)
+                (acc, it) =>
+                {
+                    var dist = currentOrder - it.Order;
+                    if (dist < acc.distance)
+                    {
+                        return new { distance = dist, winner = it };
+                    }
+
+                    return acc;
+                });
+        if (next.winner == null)
         {
             return false;
         }
+
         current.Order = next.winner.Order;
         next.winner.Order = currentOrder;
         return true;
@@ -218,18 +235,21 @@ public class Editor
         var next = items
             .Where(i => i.Order > currentOrder)
             .Aggregate(new { distance = 9999, winner = null as IHaveOrder },
-                    (acc, it) => {
-                        var    dist = it.Order - currentOrder;
-                        if(dist < acc.distance)
-                        {
-                            return new { distance = dist, winner = it };
-                        }
-                        return acc;
-                    });
-        if(next.winner == null)
+                (acc, it) =>
+                {
+                    var dist = it.Order - currentOrder;
+                    if (dist < acc.distance)
+                    {
+                        return new { distance = dist, winner = it };
+                    }
+
+                    return acc;
+                });
+        if (next.winner == null)
         {
             return false;
         }
+
         current.Order = next.winner.Order;
         next.winner.Order = currentOrder;
         return true;
@@ -238,11 +258,12 @@ public class Editor
     public bool MoveItemUp()
     {
         var current = GetSelectedItem();
-        if(MoveUp(current, GetItemsByPriority(current.Priority)))
+        if (MoveUp(current, GetItemsByPriority(current.Priority)))
         {
             PrevItem();
             return true;
         }
+
         return false;
     }
 
@@ -250,39 +271,44 @@ public class Editor
     public bool MoveItemDown()
     {
         var current = GetSelectedItem();
-        if(MoveDown(current, GetItemsByPriority(current.Priority)))
+        if (MoveDown(current, GetItemsByPriority(current.Priority)))
         {
             NextItem();
             return true;
         }
+
         return false;
     }
 
     // TODO: should probably have an id on the steps as well
     public static bool MoveStepUp(IEnumerable<TodoStep> steps, TodoStep item)
     {
-        if(steps == null)
+        if (steps == null)
         {
             return false;
         }
-        if(MoveUp(item, steps))
+
+        if (MoveUp(item, steps))
         {
             return true;
         }
+
         return false;
     }
 
 
     public static bool MoveStepDown(IEnumerable<TodoStep> steps, TodoStep item)
     {
-        if(steps == null)
+        if (steps == null)
         {
             return false;
         }
-        if(MoveDown(item, steps))
+
+        if (MoveDown(item, steps))
         {
             return true;
         }
+
         return false;
     }
 
@@ -313,9 +339,9 @@ public class Editor
     private int ClampItem(int newValue)
     {
         return Math.Clamp(
-                value: newValue,
-                min: 0,
-                max: Math.Max(0, MaxItem));
+            value: newValue,
+            min: 0,
+            max: Math.Max(0, MaxItem));
     }
 
     public void InsertItem(TodoItem item)
@@ -334,12 +360,21 @@ public class Editor
 
     public static void PrintHelpLine(bool clear)
     {
-        if(clear)
+        if (clear)
         {
             Console.Clear();
         }
-        
-        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.HelpLine, "[I] New item [H] Help [Q] Quit"));
+
+        if (_lastSave != DateTime.MinValue)
+        {
+            Console.WriteLine(
+                Settings.Instance.Theme.HelpLine.Apply(
+                    $"[I] New item [H] Help [Q] Quit (Saved {_lastSave:yyyy-MM-dd HH:mm:ss})"));
+        }
+        else
+        {
+            Console.WriteLine(Settings.Instance.Theme.HelpLine.Apply($"[I] New item [H] Help [Q] Quit"));
+        }
         //Console.WriteLine(Terminal.Color(Settings.Instance.Theme.HelpLine, $"Page {PageDisplay}/{MaxPageDisplay} | [I] New item [H] Help [Q] Quit"));
         // Output.WithForeground(ConsoleColor.Green, () => {
         //         Console.WriteLine($"Page {PageDisplay}/{MaxPageDisplay} | [I] New item [H] Help [Q] Quit");
@@ -347,10 +382,9 @@ public class Editor
     }
 
 
-
     public void Save(bool backup = false)
     {
-        var items = new Todo {Items = _items.Values.ToList(), Categories = _categories};
+        var items = new Todo { Items = _items.Values.ToList(), Categories = _categories };
         if (backup)
         {
             // force a backup
@@ -367,6 +401,7 @@ public class Editor
         }
         else
         {
+            _lastSave = DateTime.Now;
             // save a daily backup (should have a way to remove some of those on command)
             var backupPath = $"{_savePath}.{DateTime.Today:yyyyMMdd}.bak";
             if (!File.Exists(backupPath))
@@ -395,21 +430,44 @@ public class Editor
 
     public void Start()
     {
+        // TODO: the issue that I have to fix in cmd.exe is that after printing out the UI,
+        // the cursor has to be moved to the top, otherwise everything is hidden
+        // it's possible that I've missed something here though
+        // this does not happen in Windows Terminal
+
+
+        // N.B. in cmd.exe Console.BufferHeight can be 9001, so use WindowHeight,
+        // otherwise it's going to seem like you're in an infinite loop when printing the lines to clear out the screen
+        // for now, cmd.exe is supported to the extent that it does not print 9000 empty lines
         Console.CursorVisible = false;
         PrintCurrent();
-        while(true)
+        while (true)
         {
             var key = Console.ReadKey(true);
-            if(key.Key == ConsoleKey.Q)
+            if (key.Key == ConsoleKey.Q && !_modes.Peek().OverrideQuit)
             {
                 _modes.Pop();
-                if(!_modes.Any())
+                if (!_modes.Any())
                 {
                     return;
                 }
-                _modes.Peek().Init(this);
+
+                InitCurrent();
                 PrintCurrent();
             }
+            else if (key.Key == ConsoleKey.F5)
+            {
+                InitCurrent();
+                PrintCurrent();
+            }
+#if DEBUG
+            else if (key.Key == ConsoleKey.F9)
+            {
+                PushMode(new ReaderMode(string.Join("\n", Logger.GetLines())));
+                InitCurrent();
+                PrintCurrent();
+            }
+#endif
             else
             {
                 PrintCurrent();
@@ -417,5 +475,21 @@ public class Editor
             }
         }
     }
-}
 
+    public IEnumerable<SelectItem<TodoItem>> Find(string text)
+    {
+        return _items.Values.Aggregate(new List<SelectItem<TodoItem>>(), (acc, item) =>
+        {
+            if (item.Title.Contains(text, StringComparison.InvariantCultureIgnoreCase))
+            {
+                acc.Add(new SelectItem<TodoItem>($"Item: {item.Title}", item));
+            }
+
+            acc.AddRange(item.Steps
+                .Where(step => step.Text.Contains(text, StringComparison.InvariantCultureIgnoreCase))
+                .Select(step =>
+                    new SelectItem<TodoItem>($"Step (in '{item.Title}'): {step.Text.ExceptEndingNewline()}", item)));
+            return acc;
+        });
+    }
+}

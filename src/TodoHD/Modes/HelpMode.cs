@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 using System.Text;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class HelpMode : IMode
 {
@@ -37,10 +38,11 @@ public class HelpMode : IMode
     {
         // nothing to initialize
     }
+
     public void PrintUI(Editor editor)
     {
         Console.Clear();
-        Console.WriteLine(Terminal.Color(_headerColor, "== Keybindings =="));
+        Console.WriteLine(_headerColor.Apply("== Keybindings =="));
 
         var sb = new StringBuilder();
         AppendKey("Enter", "Show item", sb, AppendOptions.AppendLine);
@@ -60,26 +62,26 @@ public class HelpMode : IMode
         AppendKey("Shift+K", "Move item up", sb, AppendOptions.AppendLine);
         AppendKey("N", "Next page", sb);
         AppendKey("P", "Prev page", sb, AppendOptions.AppendLine);
-        
+
         Console.WriteLine(sb.ToString());
     }
 
     private void AppendKey(string key, string text, StringBuilder sb, AppendOptions opts = AppendOptions.Append)
     {
-        sb.Append(" " + Terminal.Color(_keyColor, $"[{key}]"));
+        sb.Append(" " + _keyColor.Apply($"[{key}]"));
         if (opts == AppendOptions.AppendLine)
         {
-            sb.AppendLine(" " + Terminal.Color(_textColor, text));
+            sb.AppendLine(" " + _textColor.Apply(text));
         }
         else
         {
-            sb.Append(" " + Terminal.Color(_textColor, text));
+            sb.Append(" " + _textColor.Apply(text));
         }
     }
 
     public void KeyEvent(ConsoleKeyInfo key, Editor editor)
     {
-        switch(key.Key)
+        switch (key.Key)
         {
             case ConsoleKey.Backspace:
                 editor.PopMode();
@@ -92,5 +94,4 @@ public class HelpMode : IMode
         Append,
         AppendLine,
     }
-
 }

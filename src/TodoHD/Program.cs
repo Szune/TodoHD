@@ -19,6 +19,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using TodoHD.Modes;
 
 namespace TodoHD;
 
@@ -31,10 +32,10 @@ public class Program
             Console.WriteLine(Version.Current);
             return 0;
         }
-        
+
         string path;
         const string fileName = "todohd.json";
-        if(args.Length > 0 && args[0] == ".")
+        if (args.Length > 0 && args[0] == ".")
         {
             path = fileName;
         }
@@ -60,7 +61,7 @@ public class Program
             var input = string.Join(" ", args.SkipWhile(it => it != "--single").Skip(1));
             var single = input.ToUpperInvariant();
 
-            if(string.IsNullOrWhiteSpace(single))
+            if (string.IsNullOrWhiteSpace(single))
             {
                 Console.WriteLine("--single missing value");
                 return 1;
@@ -68,38 +69,55 @@ public class Program
 
             var item = editor.GetItems().FirstOrDefault(it => it.Title.ToUpperInvariant().StartsWith(single));
 
-            if(item == null)
+            if (item == null)
             {
                 Console.WriteLine($"failed to find '{input}'");
                 return 1;
             }
 
             Console.WriteLine($"> {item.Title}");
+            if (!string.IsNullOrWhiteSpace(item.Description))
+            {
+                Console.WriteLine($"| {item.Description.ExceptEndingNewline()}");
+            }
+
             Console.WriteLine(string.Join("\r\n",
-                        item
-                            .Steps
-                            .Select(step => 
-                                $"[{(step.Completed ? 'x' : step.Active ? 'o' : ' ')}] {step.Text}")));
+                item
+                    .Steps
+                    .Select(step =>
+                        $"[{(step.Completed ? 'x' : step.Active ? 'o' : ' ')}] {step.Text.ExceptEndingNewline()}")));
             return 0;
         }
-        
+
+
         Settings.Load();
         editor.PushMode(new NormalMode());
+
         try
         {
+            Console.CancelKeyPress += (_, args) =>
+            {
+                editor.Save(); // might not actually want this behavior, should be a setting
+#if DEBUG
+                Logger.DebugSave();
+#endif
+            };
             editor.Start();
         }
         catch (Exception ex)
         {
             editor.Save(true);
             Logger.LogException(ex);
+            Console.WriteLine(ex);
         }
         finally
         {
             editor.Save();
+#if DEBUG
+            Logger.DebugSave();
+#endif
         }
 
         return 0;
     }
-
 }

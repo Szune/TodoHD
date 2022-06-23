@@ -17,29 +17,79 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace TodoHD;
 
 public static class Logger
 {
     private static string _path;
+    private static readonly List<string> DebugLines = new List<string>();
 
     public static void Initialize(string path)
     {
         _path = path;
     }
 
+#if DEBUG
+    public static List<string> GetLines()
+    {
+        return DebugLines;
+    }
+#endif
+
     public static void LogException(Exception ex)
     {
         LogInternal($"[Exception] {ex}");
     }
-    
+
+    [Conditional("DEBUG")]
+    public static void LogAssertion(
+        bool condition,
+        string message = "",
+        [CallerArgumentExpression("condition")]
+        string callingArgumentExpression = "",
+        [CallerMemberName] string callingMethod = "",
+        [CallerFilePath] string callingFilePath = "",
+        [CallerLineNumber] int callingFileLine = 0
+    )
+    {
+        if (condition) return;
+        LogInternal(
+            !string.IsNullOrWhiteSpace(message)
+                ? $"[Assert] {callingFilePath}:{callingFileLine} at {callingMethod} Assertion failed '{callingArgumentExpression}': {message}"
+                : $"[Assert] {callingFilePath}:{callingFileLine} at {callingMethod} Assertion failed '{callingArgumentExpression}'");
+    }
+
+    [Conditional("DEBUG")]
     public static void LogDebug(string msg)
     {
-        #if DEBUG
-        LogInternal($"[Debug] {msg}");
-        #endif
+        DebugLines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Debug] {msg}");
+    }
+
+    [Conditional("DEBUG")]
+    public static void LogTrace(string msg)
+    {
+        if (Settings.Instance.Trace)
+        {
+            DebugLines.Add($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Trace] {msg}");
+        }
+    }
+
+    [Conditional("DEBUG")]
+    public static void DebugSave()
+    {
+        try
+        {
+            File.AppendAllLines(GetLogPath(), DebugLines);
+        }
+        catch
+        {
+            // should have some kind of notification if this happens
+        }
     }
 
     private static void LogInternal(string msg)
@@ -53,11 +103,10 @@ public static class Logger
             // should have some kind of notification if this happens
         }
     }
-    
+
     private static string GetLogPath()
     {
         var backupLogPath = $"{_path}.{DateTime.Now:yyyyMMdd}.log";
         return backupLogPath;
     }
-
 }

@@ -18,28 +18,28 @@
 
 #define USE_PAGED_LIST_BOX
 
-using TodoHD.Controls;
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using SaferVariants;
+using TodoHD.Controls;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class NormalMode : IMode
 {
-    #if USE_PAGED_LIST_BOX
+#if USE_PAGED_LIST_BOX
     PagedListBox<TodoItem> _list;
-    #else
+#else
     ListBox<TodoItem> _list;
-    #endif
-    
+#endif
+
     private readonly Accumulator _accumulator = new Accumulator(100);
 
     public void Init(Editor editor)
     {
         Editor.PrintHelpLine(true);
-        #if USE_PAGED_LIST_BOX
+#if USE_PAGED_LIST_BOX
         _list ??=
             new PagedListBox<TodoItem>(
                 itemsFactory: () => editor
@@ -61,6 +61,7 @@ public class NormalMode : IMode
                         {
                             return Terminal.Color(Settings.Instance.Theme.TodoItemUrgentSelected, formattedString);
                         }
+
                         return Terminal.Color(Settings.Instance.Theme.TodoItemSelected, formattedString);
                     }
 
@@ -68,15 +69,16 @@ public class NormalMode : IMode
                     {
                         return Terminal.Color(Settings.Instance.Theme.TodoItemUrgent, formattedString);
                     }
+
                     return Terminal.Color(color: Settings.Instance.Theme.TodoItem, text: formattedString);
                 })
             {
                 OrderBy = Option.Some<Func<IEnumerable<TodoItem>, IEnumerable<TodoItem>>>(
                     it =>
-                        it.OrderByDescending(x => (int) x.Priority)
+                        it.OrderByDescending(x => (int)x.Priority)
                             .ThenBy(x => x.Order))
             };
-        #else
+#else
         _list ??=
             new ListBox<TodoItem>(
                 itemsFactory: () => editor
@@ -96,7 +98,7 @@ public class NormalMode : IMode
                         it.OrderByDescending(x => (int) x.Priority)
                             .ThenBy(x => x.Order))
             };
-        #endif
+#endif
         _list.Update();
     }
 
@@ -105,12 +107,73 @@ public class NormalMode : IMode
         PrintItems(editor);
     }
 
+    private void Find(Editor editor)
+    {
+        if (Console.CursorTop > Console.WindowHeight - 3)
+        {
+            Console.SetCursorPosition(0, Console.WindowHeight - 3);
+        }
+
+        Console.WriteLine("Find:");
+        Console.CursorVisible = true;
+        var maybeText = Input.GetString();
+        Console.CursorVisible = false;
+        maybeText.HandleNone(() =>
+        {
+            Init(editor);
+            PrintUI(editor);
+        }).Then(text =>
+        {
+            var results = editor.Find(text).ToList();
+            var termSize = Terminal.GetWindowSize();
+            if (results.Count > 0)
+            {
+                Console.SetCursorPosition(0, 1);
+                var height = Console.WindowHeight - Console.CursorTop - 3;
+                Console.WriteLine("Search results:" + new string(' ', Console.WindowWidth - "Search results:".Length));
+                var selected = Input.Select(results, height);
+                if (selected.IsSome(out var selectedItem))
+                {
+                    editor.PushMode(new ViewMode(selectedItem.Item));
+                }
+                else
+                {
+                    Init(editor);
+                    PrintUI(editor);
+                }
+            }
+            else
+            {
+                editor.PushMode(new FloatingBoxMode($"No results for '{text}'", termSize.Width, termSize.Height));
+            }
+        });
+    }
+
+    private void ConfirmSave(Editor editor)
+    {
+        Console.SetCursorPosition(0, 1);
+        var height = Console.WindowHeight - Console.CursorTop - 3;
+        Console.WriteLine("Save?" + new string(' ', Console.WindowWidth - "Save?".Length));
+        var confirm = Input.Confirm(height);
+        if (confirm == Confirm.Yes)
+        {
+            editor.Save();
+        }
+
+        Init(editor);
+        PrintUI(editor);
+    }
+
     public void KeyEvent(ConsoleKeyInfo key, Editor editor)
     {
         switch (key.Key)
         {
             case ConsoleKey.Enter:
-                editor.PushMode(new ViewMode(_list.SelectedItem));
+                if (_list.SelectedItem.IsSome(out var item))
+                {
+                    editor.PushMode(new ViewMode(item));
+                }
+
                 _accumulator.Reset();
                 break;
             case ConsoleKey.I:
@@ -129,11 +192,31 @@ public class NormalMode : IMode
                 editor.PushMode(new DeleteMode());
                 _accumulator.Reset();
                 break;
+            case ConsoleKey.S:
+                ConfirmSave(editor);
+                _accumulator.Reset();
+                break;
+            case ConsoleKey.F:
+                Find(editor);
+                _accumulator.Reset();
+                break;
             case ConsoleKey.N:
-                _accumulator.Execute(editor.NextPage);
+                _accumulator.Execute(() =>
+                {
+                    if (_list.NextPage())
+                    {
+                        PrintItems(editor);
+                    }
+                });
                 break;
             case ConsoleKey.P:
-                _accumulator.Execute(editor.PrevPage);
+                _accumulator.Execute(() =>
+                {
+                    if (_list.PreviousPage())
+                    {
+                        PrintItems(editor);
+                    }
+                });
                 break;
             case ConsoleKey.G:
                 if (key.Modifiers == ConsoleModifiers.Shift)
@@ -150,7 +233,7 @@ public class NormalMode : IMode
                         editor.FirstItem();
                     }
                 }
-                
+
                 _accumulator.Reset();
                 break;
             case ConsoleKey.DownArrow:
@@ -219,11 +302,10 @@ public class NormalMode : IMode
     private void PrintItems(Editor editor)
     {
         Console.SetCursorPosition(0, 1);
-        #if USE_PAGED_LIST_BOX
-        _list.Print(Console.BufferWidth, Console.BufferHeight - 2);
-        #else
+#if USE_PAGED_LIST_BOX
+        _list.Print(Console.WindowWidth, Console.WindowHeight - 4);
+#else
         _list.Print();
-        #endif
+#endif
     }
 }
-

@@ -16,10 +16,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
+using System;
+using System.Text;
+using SaferVariants;
+using TodoHD.Rendering;
+
 namespace TodoHD;
 
 public static class Terminal
 {
+    public static int TabWidth => 4;
+
     public static string Foreground(ForegroundColor color, string text)
     {
         return $"\x1b[1;{color.Value}m{text}\x1b[0m";
@@ -30,27 +37,84 @@ public static class Terminal
         return $"\x1b[1;{color.Value}m{text}\x1b[0m";
     }
 
+    private static string PreForeground(ForegroundColor color, string text)
+    {
+        return $"\x1b[1;{color.Value}m{text}";
+    }
+
+    private static string PreBackground(BackgroundColor color, string text)
+    {
+        return $"\x1b[1;{color.Value}m{text}";
+    }
+
+    private static string ResetStyle(string text)
+    {
+        return $"{text}\x1b[0m";
+    }
+
     public static string Color(Color color, string text)
     {
         if (color.Background != BackgroundColors.None)
         {
             text = Background(color.Background, text);
         }
+
         if (color.Foreground != ForegroundColors.None)
         {
             text = Foreground(color.Foreground, text);
         }
+
         return text;
+    }
+
+    public static void ClearBetween(int start, int end, int lineWidth)
+    {
+        Console.SetCursorPosition(0, start);
+        if (start <= end - 1)
+        {
+            var sb = new StringBuilder();
+            // write enough lines to clear out the lines
+            for (var i = start; i < end - 1; i++)
+                sb.AppendLine(new string(' ', lineWidth));
+            Console.Write(sb.ToString());
+        }
+    }
+
+    public static (int Width, int Height) GetWindowSize()
+    {
+        return (Width: Console.WindowWidth, Height: Console.WindowHeight);
+    }
+
+    public static string Style(IOption<ForegroundColor> fg, IOption<BackgroundColor> bg, string text)
+    {
+        var hasColor = false;
+
+        if (fg.IsSome(out var fgColor))
+        {
+            text = PreForeground(fgColor, text);
+            hasColor = true;
+        }
+
+        if (bg.IsSome(out var bgColor))
+        {
+            text = PreBackground(bgColor, text);
+            hasColor = true;
+        }
+
+        return hasColor ? ResetStyle(text) : text;
     }
 }
 
-public record ForegroundColor(string Value)
+public record ForegroundColor(string Value) : ITerminalSgrEffect
 {
     public static implicit operator ForegroundColor(string value)
     {
         return new ForegroundColor(value);
     }
+
+    public string Apply(string input) => Terminal.Foreground(this, input);
 }
+
 public static class ForegroundColors
 {
     public static readonly ForegroundColor None = new("");
@@ -73,13 +137,16 @@ public static class ForegroundColors
     public static readonly ForegroundColor White = new("97");
 }
 
-public record BackgroundColor(string Value)
+public record BackgroundColor(string Value) : ITerminalSgrEffect
 {
     public static implicit operator BackgroundColor(string value)
     {
         return new BackgroundColor(value);
     }
+
+    public string Apply(string input) => Terminal.Background(this, input);
 }
+
 public static class BackgroundColors
 {
     public static readonly BackgroundColor None = new("");

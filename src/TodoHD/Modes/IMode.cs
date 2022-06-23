@@ -15,21 +15,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public interface IMode
 {
     void Init(Editor editor);
     void PrintUI(Editor editor);
+
     void KeyEvent(ConsoleKeyInfo key, Editor editor);
-    // /// <summary>
-    // /// Fired when state is modified by the user.
-    // /// </summary>
-    // event EventHandler Modified;
-    // /// <summary>
-    // /// Fired when the user navigates (enter/exit todo item)
-    // /// </summary>
-    // event EventHandler Navigated;
+
+    bool OverrideQuit => false;
 }

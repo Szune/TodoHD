@@ -16,229 +16,24 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using SaferVariants;
+using TodoHD.Rendering;
 
 namespace TodoHD;
 
-// TODO: this should be in settings.aeon
+// TODO: this should be in the new settings format when it's implemented
 public class Settings
 {
-    private const string SETTINGS_FILE_NAME = ".todorc"; 
-    private static readonly Dictionary<string, Theme> ThemesMap = new Dictionary<string, Theme>
-    {
-        ["dark"] = Theme.Dark,
-        ["light"] = Theme.Light
-    };
+    private const string SETTINGS_FILE_NAME = ".todorc";
+
     public bool SaveOnModified { get; set; }
     public bool SaveOnNavigated { get; set; }
     public int SaveIntervalInMinutes { get; set; } = 5;
     public Theme Theme { get; set; } = Theme.Light;
-
-    private static IOption<string[]> TryReadLines(string path)
-    {
-        try
-        {
-            return Option.Some(File.ReadAllLines(path));
-        }
-        catch
-        {
-            // shouldn't fail for lack of a .todorc, just use defaults
-            return Option.None<string[]>();
-        }
-    }
-
-    /// <summary>
-    /// Begins by looking in the current working directory for a .todorc file, then in TodoHD's binary directory.
-    /// <para>Returns the contents of whichever of those files it finds, or nothing.</para>
-    /// </summary>
-    private static IOption<string[]> ReadSettingsLines()
-    {
-        // first look for settings file in current working dir
-        var lines = TryReadLines(SETTINGS_FILE_NAME);
-
-        if (lines.IsSome())
-        {
-            return lines;
-        }
-
-        // then look for settings file in the TodoHD binary's dir
-        return TryReadLines(Path.Combine(AppContext.BaseDirectory, SETTINGS_FILE_NAME));
-    }
+    public bool Trace { get; set; } = false;
 
     public static void Load()
     {
-        var settingsLines = ReadSettingsLines();
-
-        if (!settingsLines.IsSome(out var lines))
-        {
-            Instance = new Settings();
-            return;
-        }
-
-        var settingsProperties =
-            lines
-                .Where(s => !s.TrimStart().StartsWith("#"))
-                .Select(s => new KeyValuePair<string,string>(
-                    s.Split('=', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant(),
-                    string.Join("", s.Split('=').Skip(1)).Trim()
-                    ))
-                .Where(kvp => kvp.Key != default)
-                .ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value);
-
-        var theme = ThemesMap.GetValueOrDefault(
-            settingsProperties.GetValueOrDefault("theme", "dark").ToLowerInvariant(),
-            Theme.Dark);
-
-        //throw new InvalidOperationException(string.Join("\n", settingsProperties.Select(kvp => $"'{kvp.Key}':'{kvp.Value}'")) );
-
-        var tmpColor = ReadColor(nameof(TodoHD.Theme.HelpModeHeader).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.HelpModeHeader = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.HelpModeText).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.HelpModeText = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.HelpModeKey).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.HelpModeKey = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.HelpLine).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.HelpLine = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.TodoItemHeader).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.TodoItemHeader = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.TodoItem).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.TodoItem = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.TodoItemSelected).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.TodoItemSelected = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.TodoItemUrgent).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.TodoItemUrgent = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.TodoItemUrgentSelected).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.TodoItemUrgentSelected = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.Step).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.Step = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.StepSelected).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.StepSelected = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.StepCompleted).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.StepCompleted = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.StepCompletedSelected).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.StepCompletedSelected = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.StepActive).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.StepActive = color);
-
-        tmpColor = ReadColor(nameof(TodoHD.Theme.StepActiveSelected).ToLowerInvariant(), settingsProperties);
-        tmpColor.Then(color => theme.StepActiveSelected = color);
-
-        var settings = new Settings
-        {
-            Theme = theme,
-        };
-        Instance = settings;
-    }
-
-    private static readonly Dictionary<string, BackgroundColor> BackgroundColorsMap =
-        new Dictionary<string, BackgroundColor>()
-        {
-            ["none"] = BackgroundColors.None,
-            ["reset"] = BackgroundColors.Reset,
-            ["black"] = BackgroundColors.Black,
-            ["darkred"] = BackgroundColors.DarkRed,
-            ["darkgreen"] = BackgroundColors.DarkGreen,
-            ["darkyellow"] = BackgroundColors.DarkYellow,
-            ["darkblue"] = BackgroundColors.DarkBlue,
-            ["darkmagenta"] = BackgroundColors.DarkMagenta,
-            ["darkcyan"] = BackgroundColors.DarkCyan,
-            ["gray"] = BackgroundColors.Gray,
-            ["darkgray"] = BackgroundColors.DarkGray,
-            ["red"] = BackgroundColors.Red,
-            ["green"] = BackgroundColors.Green,
-            ["yellow"] = BackgroundColors.Yellow,
-            ["blue"] = BackgroundColors.Blue,
-            ["magenta"] = BackgroundColors.Magenta,
-            ["cyan"] = BackgroundColors.Cyan,
-            ["white"] = BackgroundColors.White,
-
-        };
-
-    private static readonly Dictionary<string, ForegroundColor> ForegroundColorsMap =
-        new Dictionary<string, ForegroundColor>()
-        {
-            ["none"] = ForegroundColors.None,
-            ["reset"] = ForegroundColors.Reset,
-            ["black"] = ForegroundColors.Black,
-            ["darkred"] = ForegroundColors.DarkRed,
-            ["darkgreen"] = ForegroundColors.DarkGreen,
-            ["darkyellow"] = ForegroundColors.DarkYellow,
-            ["darkblue"] = ForegroundColors.DarkBlue,
-            ["darkmagenta"] = ForegroundColors.DarkMagenta,
-            ["darkcyan"] = ForegroundColors.DarkCyan,
-            ["gray"] = ForegroundColors.Gray,
-            ["darkgray"] = ForegroundColors.DarkGray,
-            ["red"] = ForegroundColors.Red,
-            ["green"] = ForegroundColors.Green,
-            ["yellow"] = ForegroundColors.Yellow,
-            ["blue"] = ForegroundColors.Blue,
-            ["magenta"] = ForegroundColors.Magenta,
-            ["cyan"] = ForegroundColors.Cyan,
-            ["white"] = ForegroundColors.White,
-
-        };
-
-    private static readonly Regex ColorSettingRegex =
-        new Regex(@"[Cc]olor\(\s?(?'fg'[A-Za-z]{1,20})\s?,\s?(?'bg'[A-Za-z]{1,20})\s?\)", RegexOptions.Compiled);
-
-    private static readonly Regex FgSettingRegex =
-        new Regex(@"[Ff][Gg]\(\s?(?'fg'[A-Za-z]{1,20})\s?\)", RegexOptions.Compiled);
-
-    private static readonly Regex BgSettingRegex =
-        new Regex(@"[Bb][Gg]\(\s?(?'bg'[A-Za-z]{1,20})\s?\)", RegexOptions.Compiled);
-
-    private static IOption<Color> ReadColor(string property, Dictionary<string, string> properties)
-    {
-        if (property == null || !properties.ContainsKey(property))
-            return Option.None<Color>();
-
-        var val = properties[property];
-        var colors = ColorSettingRegex.Match(val);
-
-        if (colors.Success &&
-            ForegroundColorsMap.TryGetValue(colors.Groups["fg"].Value.ToLowerInvariant(), out var fg) &&
-            BackgroundColorsMap.TryGetValue(colors.Groups["bg"].Value.ToLowerInvariant(), out var bg))
-        {
-            return Option.Some(new Color(fg, bg));
-        }
-
-        var fgprop = FgSettingRegex.Match(val);
-
-        if (fgprop.Success &&
-            ForegroundColorsMap.TryGetValue(fgprop.Groups["fg"].Value.ToLowerInvariant(), out fg))
-        {
-            return Option.Some(new Color(fg));
-        }
-
-        var bgprop = BgSettingRegex.Match(val);
-
-        if (bgprop.Success &&
-            BackgroundColorsMap.TryGetValue(bgprop.Groups["bg"].Value.ToLowerInvariant(), out bg))
-        {
-            return Option.Some(new Color(bg));
-        }
-
-        return Option.None<Color>();
+        Instance = SettingsReader.Read(SETTINGS_FILE_NAME);
     }
 
     public static Settings Instance { get; private set; } = new Settings();
@@ -246,6 +41,7 @@ public class Settings
 
 public class Theme
 {
+    public ThemeName Name { get; set; } = "Init";
     public Color HelpModeHeader { get; set; } = new Color(ForegroundColors.DarkCyan);
     public Color HelpModeText { get; set; } = new Color(ForegroundColors.White);
     public Color HelpModeKey { get; set; } = new Color(ForegroundColors.Green);
@@ -264,6 +60,7 @@ public class Theme
 
     public static Theme Light => new Theme
     {
+        Name = "Light",
         HelpModeHeader = new Color(ForegroundColors.DarkBlue),
         HelpModeText = new Color(ForegroundColors.Black),
         HelpModeKey = new Color(ForegroundColors.Green),
@@ -283,6 +80,7 @@ public class Theme
 
     public static Theme Dark => new Theme
     {
+        Name = "Dark",
         HelpModeHeader = new Color(ForegroundColors.DarkCyan),
         HelpModeText = new Color(ForegroundColors.White),
         HelpModeKey = new Color(ForegroundColors.Green),
@@ -301,13 +99,29 @@ public class Theme
     };
 }
 
-public record Color(ForegroundColor Foreground, BackgroundColor Background)
+public record Color(ForegroundColor Foreground, BackgroundColor Background) : ITerminalSgrEffect
 {
     public Color(ForegroundColor foreground) : this(foreground, BackgroundColors.None)
     {
     }
+
     public Color(BackgroundColor background) : this(ForegroundColors.None, background)
     {
     }
+
     public static readonly Color Default = new Color(ForegroundColors.None, BackgroundColors.None);
+    public string Apply(string input) => Terminal.Color(this, input);
+
+    public StyledSpan Span(string text)
+    {
+        return new StyledSpan(text, this);
+    }
+}
+
+public record ThemeName(string Value, bool Custom)
+{
+    public static implicit operator ThemeName(string value)
+    {
+        return new ThemeName(value, false);
+    }
 }

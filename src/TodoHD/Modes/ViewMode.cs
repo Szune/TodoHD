@@ -16,121 +16,105 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
-using TodoHD.Controls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using SaferVariants;
+using TodoHD.Controls;
 
-namespace TodoHD;
+namespace TodoHD.Modes;
 
 public class ViewMode : IMode
 {
-
     /// <summary>
     /// Stores amount of times an action is to be performed, should be cleared after action
     /// </summary>
     private readonly Accumulator _accumulator = new Accumulator(100);
+
     private int _stepStart;
     private readonly TodoItem _item;
     private readonly PagedListBox<TodoStep> _list;
     private readonly HelpLine _help;
 
-    public ViewMode(TodoItem item) {
+    public ViewMode(TodoItem item)
+    {
         // active items as well as selected items
-        _help = new HelpLine(text: "[+] Add step [-] Remove step [T] Edit step [E] Edit item [Space] Mark step [A] Active step [Q] Quit");
+        _help = new HelpLine(
+            text:
+            "[+] Add step [-] Remove step [T] Edit step [E] Edit item [Space] Mark step [A] Active step [O] Reader [Q] Quit");
         _item = item;
         _item.Steps ??= new();
         _list = new PagedListBox<TodoStep>(itemsFactory: GetItems,
             formatter: step => $" [{(step.Completed ? 'x' : step.Active ? 'o' : ' ')}] {step.Text}",
             colorFunc: (step, formattedString, selected) =>
-            {
-                if (selected)
+                (selected, step.Active, step.Completed) switch
                 {
-                    if (step.Active && !step.Completed)
-                    {
-                        return Terminal.Color(color: Settings.Instance.Theme.StepActiveSelected, text: formattedString);
-                        // return Terminal.Background(BackgroundColors.Blue,
-                        //     Terminal.Foreground(ForegroundColors.White, formattedString));
-                        // return Terminal.Background(BackgroundColors.DarkGray,
-                        //     Terminal.Foreground(ForegroundColors.Cyan, formattedString));
-                    }
-                    else if (step.Completed)
-                    {
-                        return Terminal.Color(color: Settings.Instance.Theme.StepCompletedSelected, text: formattedString);
-                    }
-                    else
-                    {
-                        return Terminal.Color(color: Settings.Instance.Theme.StepSelected, text: formattedString);
-                        // return Terminal.Foreground(ForegroundColors.Cyan, formattedString);
-                    }
-                }
-                if (step.Completed)
-                {
-                    return Terminal.Color(color: Settings.Instance.Theme.StepCompleted, text: formattedString);
-                    // return Terminal.Foreground(ForegroundColors.DarkGray, formattedString);
-                }
-                if (step.Active)
-                {
-                    return Terminal.Color(color: Settings.Instance.Theme.StepActive, text: formattedString);
-                    // return Terminal.Background(BackgroundColors.DarkGray,
-                    //     Terminal.Foreground(ForegroundColors.Blue, formattedString));
-                }
-                return Terminal.Color(color: Settings.Instance.Theme.Step, text: formattedString);
-            })
+                    (true, _, true) => Settings.Instance.Theme.StepCompletedSelected.Apply(formattedString),
+                    (true, true, _) => Settings.Instance.Theme.StepActiveSelected.Apply(formattedString),
+                    (true, _, _) => Settings.Instance.Theme.StepSelected.Apply(formattedString),
+                    (_, _, true) => Settings.Instance.Theme.StepCompleted.Apply(formattedString),
+                    (_, true, _) => Settings.Instance.Theme.StepActive.Apply(formattedString),
+                    _ => Settings.Instance.Theme.Step.Apply(formattedString)
+                })
         {
             HidePageNumberIfSinglePage = true,
-            OrderBy = Option.Some<Func<IEnumerable<TodoStep>, IEnumerable<TodoStep>>>(value: it => it.OrderBy(keySelector: x => x.Order))
+            OrderBy = Option.Some<Func<IEnumerable<TodoStep>, IEnumerable<TodoStep>>>(value: it =>
+                it.OrderBy(keySelector: x => x.Order))
         };
     }
 
-    public void Init(Editor editor) {
+    public void Init(Editor editor)
+    {
         Console.Clear();
         _help.Print();
     }
 
     IEnumerable<TodoStep> GetItems() => (_item.Steps ?? new()).OrderBy(i => i.Order);
 
-    public void PrintUI(Editor editor) {
+    public void PrintUI(Editor editor)
+    {
         Console.SetCursorPosition(0, _help.Height);
-        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, $"== {_item.Title} =="));
-        switch(_item.Priority)
+        Console.WriteLine(Settings.Instance.Theme.TodoItemHeader.Apply($"== {_item.Title} =="));
+        switch (_item.Priority)
         {
             case Priority.Whenever:
-                Console.Write("   ");
-                Output.WithBackground(ConsoleColor.Green, () => {
-                    Console.WriteLine($"<{_item.Priority}>");
-                });
+                Console.WriteLine($"   {BackgroundColors.Green.Apply($"<{_item.Priority}>")}");
                 break;
             case Priority.Urgent:
-                Console.Write("   ");
-                Output.WithBackground(ConsoleColor.Red, () => {
-                    Console.WriteLine($"*{_item.Priority}*");
-                });
+                Console.WriteLine($"   {BackgroundColors.Red.Apply($"*{_item.Priority}*")}");
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(_item.Priority),
+                    $"Priority '{_item.Priority}' is not handled in {nameof(PrintUI)}");
         }
-        
-        _item.Description
-            .ExceptEndingNewline()
-            .ReplaceLineEndings("\n")
-            .Split('\n')
-            .ToList()
-            .ForEach(part =>
-                Output.WriteLineWrapping($"{new string(' ', 2)}{part}"));
+
+        var availableHeight = Console.WindowHeight - 1;
+        if (_item.Steps.Count != 0)
+        {
+            availableHeight /= 3;
+        }
+
+        var textBlock = new CollapsibleTextBlock(_item.Description);
+        textBlock.Print(Console.WindowWidth, availableHeight);
 
         Console.WriteLine();
+#if DEBUG
+        Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader,
+            $"== Steps {Console.WindowHeight - (Console.CursorTop + 1) - 1} lines left =="));
+#else
         Console.WriteLine(Terminal.Color(Settings.Instance.Theme.TodoItemHeader, "== Steps =="));
+#endif
 
         _stepStart = Console.CursorTop;
-        
+
         PrintSteps(editor);
     }
 
     void PrintSteps(Editor editor)
     {
         Console.SetCursorPosition(0, _stepStart);
-        _list.Print(Console.BufferWidth, Console.BufferHeight - _stepStart - 1);
+        _list.Print(Console.WindowWidth, Console.WindowHeight - _stepStart - 1);
     }
 
     public void KeyEvent(ConsoleKeyInfo key, Editor editor)
@@ -141,7 +125,8 @@ public class ViewMode : IMode
             PrintUI(editor);
             return;
         }
-        switch(key.Key)
+
+        switch (key.Key)
         {
             case ConsoleKey.Backspace:
                 editor.PopMode();
@@ -154,18 +139,19 @@ public class ViewMode : IMode
             case ConsoleKey.G:
                 if (key.Modifiers == ConsoleModifiers.Shift)
                 {
-                    if(_list.SelectLast())
+                    if (_list.SelectLast())
                     {
                         PrintSteps(editor);
                     }
                 }
                 else
                 {
-                    if(_list.SelectFirst())
+                    if (_list.SelectFirst())
                     {
                         PrintSteps(editor);
                     }
                 }
+
                 _accumulator.Reset();
                 break;
             case ConsoleKey.DownArrow:
@@ -174,9 +160,9 @@ public class ViewMode : IMode
                 {
                     if (key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        if (_item.Steps.Count > 0)
+                        if (_list.SelectedItem.IsSome(out var item))
                         {
-                            if (Editor.MoveStepDown(GetItems(), _list.SelectedItem))
+                            if (Editor.MoveStepDown(GetItems(), item))
                             {
                                 _list.Update();
                                 _list.SelectNext();
@@ -199,9 +185,9 @@ public class ViewMode : IMode
                 {
                     if (key.Modifiers == ConsoleModifiers.Shift)
                     {
-                        if (_item.Steps.Count > 0)
+                        if (_list.SelectedItem.IsSome(out var item))
                         {
-                            if (Editor.MoveStepUp(GetItems(), _list.SelectedItem))
+                            if (Editor.MoveStepUp(GetItems(), item))
                             {
                                 _list.Update();
                                 _list.SelectPrevious();
@@ -260,6 +246,23 @@ public class ViewMode : IMode
                 ActiveStep(editor);
                 _accumulator.Reset();
                 break;
+            case ConsoleKey.O:
+                _accumulator.Reset();
+                if (key.Modifiers == ConsoleModifiers.Shift)
+                {
+                    // reader mode for selected step
+                    if (_list.SelectedItem.IsSome(out var item))
+                    {
+                        editor.PushMode(new ReaderMode(item.Text));
+                    }
+                }
+                else
+                {
+                    // reader mode for description
+                    editor.PushMode(new ReaderMode(_item.Description));
+                }
+
+                break;
             case ConsoleKey.D0:
             case ConsoleKey.D1:
             case ConsoleKey.D2:
@@ -282,13 +285,19 @@ public class ViewMode : IMode
 
     void AddStep(Editor editor)
     {
+        if (Console.CursorTop > Console.WindowHeight - 3)
+        {
+            Terminal.ClearBetween(Console.WindowHeight - 3, Console.WindowHeight, Console.WindowWidth);
+            Console.SetCursorPosition(0, Console.WindowHeight - 3);
+        }
+
         Console.WriteLine("Step text:");
         Console.CursorVisible = true;
         var maybeText = Input.GetString();
         Console.CursorVisible = false;
         maybeText.Then(text =>
         {
-            _item.Steps.Add(new TodoStep{ Text = text, Order = NextOrder });
+            _item.Steps.Add(new TodoStep { Text = text, Order = NextOrder });
             _list.Update();
             editor.Save();
         });
@@ -298,13 +307,14 @@ public class ViewMode : IMode
 
     void DeleteStep(Editor editor)
     {
-        if(_item.Steps.Count == 0)
+        if (!_list.SelectedItem.IsSome(out var item))
         {
             return;
         }
+
         Console.WriteLine();
         Console.WriteLine("Are you sure you want to delete this step? (y/n)");
-        Console.WriteLine(_list.SelectedItem.Text);
+        Console.WriteLine(item.Text);
         Console.CursorVisible = true;
         var maybeDelete = Input.GetString();
         Console.CursorVisible = false;
@@ -312,7 +322,7 @@ public class ViewMode : IMode
         {
             if (string.Equals(it, "Y", StringComparison.OrdinalIgnoreCase))
             {
-                _item.Steps.Remove(_list.SelectedItem);
+                _item.Steps.Remove(item);
                 _list.Update();
                 editor.Save();
             }
@@ -323,51 +333,53 @@ public class ViewMode : IMode
 
     void MarkStep(Editor editor)
     {
-        if(_item.Steps.Count == 0)
+        if (!_list.SelectedItem.IsSome(out var item))
         {
             return;
         }
-        var selected = _list.SelectedItem;
-        selected.Completed = !selected.Completed;
-        if (selected.Completed)
+
+        item.Completed = !item.Completed;
+        if (item.Completed)
         {
-            selected.Active = false; // should never be both active and completed
+            item.Active = false; // should never be both active and completed
         }
+
         //editor.Save();
         PrintSteps(editor);
     }
 
     void ActiveStep(Editor editor)
     {
-        if(_item.Steps.Count == 0)
+        if (!_list.SelectedItem.IsSome(out var item))
         {
             return;
         }
-        var selected = _list.SelectedItem;
-        if(!selected.Completed)
+
+        if (!item.Completed)
         {
-            selected.Active = !selected.Active;
+            item.Active = !item.Active;
             //editor.Save();
         }
+
         PrintSteps(editor);
     }
 
     void EditStep(Editor editor)
     {
-        if (_list.Items.Count < 1)
+        if (!_list.SelectedItem.IsSome(out var item))
         {
             return;
         }
+
         // Clear steps to focus on the one being edited
         Console.SetCursorPosition(0, _stepStart);
         var sb = new StringBuilder();
         Enumerable
             .Range(0, _item.Steps.Count)
             .ToList()
-            .ForEach(_ => sb.AppendLine(new string(' ', Console.BufferWidth - 1)));
+            .ForEach(_ => sb.AppendLine(new string(' ', Console.WindowWidth - 1)));
         Console.Write(sb);
 
-        var item = _list.SelectedItem;
         Console.SetCursorPosition(0, _stepStart);
         Console.WriteLine("Previous text:");
         Console.WriteLine($" {item.Text}");
@@ -383,14 +395,14 @@ public class ViewMode : IMode
         Init(editor);
         PrintUI(editor);
     }
-    
+
     void VisualEditStep(Editor editor)
     {
-        if (_list.Items.Count < 1)
+        if (!_list.SelectedItem.IsSome(out var item))
         {
             return;
         }
-        var item = _list.SelectedItem;
+
         var extEditor = new ExternalEditor(item.Text);
         var edit = extEditor.Edit();
         edit.Then(text =>
@@ -402,4 +414,3 @@ public class ViewMode : IMode
         PrintUI(editor);
     }
 }
-

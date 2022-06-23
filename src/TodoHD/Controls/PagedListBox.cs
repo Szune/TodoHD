@@ -32,20 +32,24 @@ public class PagedListBox<T>
 
     private readonly Func<IEnumerable<T>> _itemsFactory;
     public List<T> Items { get; private set; }
-    private readonly Func<T,string> _formatter;
+    private readonly Func<T, string> _formatter;
     private readonly Func<T, string, bool, string> _colorFunc;
 
     private int _selected;
     private int _lastLineAmount;
 
-    public T SelectedItem => Items[_selected];
+    public IOption<T> SelectedItem =>
+        Items.Count > 0
+            ? Option.Some(Items[_selected])
+            : Option.None<T>();
 
-    public IOption<Func<IEnumerable<T>, IEnumerable<T>>> OrderBy {get; set;} =
+    public IOption<Func<IEnumerable<T>, IEnumerable<T>>> OrderBy { get; set; } =
         Option.None<Func<IEnumerable<T>, IEnumerable<T>>>();
 
     public bool HidePageNumberIfSinglePage { get; set; }
 
-    public PagedListBox(Func<IEnumerable<T>> itemsFactory, Func<T,string> formatter, Func<T, string, bool, string> colorFunc)
+    public PagedListBox(Func<IEnumerable<T>> itemsFactory, Func<T, string> formatter,
+        Func<T, string, bool, string> colorFunc)
     {
         _itemsFactory = itemsFactory;
         _formatter = formatter;
@@ -56,10 +60,11 @@ public class PagedListBox<T>
     public void Update()
     {
         var items = _itemsFactory();
-        if(OrderBy.IsSome(out var ordering))
+        if (OrderBy.IsSome(out var ordering))
         {
             items = ordering(items);
         }
+
         Items = items.ToList();
         // fix selection after removal
         _selected = Math.Clamp(_selected, 0, Math.Max(0, Items.Count - 1));
@@ -67,12 +72,13 @@ public class PagedListBox<T>
 
     private List<RenderedPage> PrerenderPages(int availableWidth, int availableHeight)
     {
-        using var pb = new PageBuilder(availableWidth, availableHeight);
+        var pb = new PageBuilder(availableWidth, availableHeight);
 
-        for(var i = 0; i < Items.Count; i++)
+        for (var i = 0; i < Items.Count; i++)
         {
             RenderItem(availableWidth, availableHeight, i, pb);
         }
+
         return pb.Build();
     }
 
@@ -85,16 +91,23 @@ public class PagedListBox<T>
         var sb = new StringBuilder();
 
         // add "selected" format
+        // TODO: make these write directly to the StringBuilder
         if (isSelected)
         {
-            _ = Output.WriteLineWrapping(
-                sb,
-                FormatSelected(formatted),
-                availableWidth);
+            Output.WriteLineWrappingList(FormatSelected(formatted), availableWidth)
+                .Lines
+                .ForEach(x => sb.AppendLine(x));
+            //_ = Output.WriteLineWrapping(
+            //    sb,
+            //    FormatSelected(formatted),
+            //    availableWidth);
         }
         else
         {
-            _ = Output.WriteLineWrapping(sb, formatted, availableWidth);
+            Output.WriteLineWrappingList(formatted, availableWidth)
+                .Lines
+                .ForEach(x => sb.AppendLine(x));
+            //_ = Output.WriteLineWrapping(sb, formatted, availableWidth);
         }
 
         // update formatted string
@@ -110,12 +123,12 @@ public class PagedListBox<T>
             linesLeft < measured.MaxHeight)
         {
             renderedHeight = measured.MaxHeight - linesLeft;
-            rendered = CollapseItem(rendered, renderedHeight);
+            rendered = CollapseItem(rendered, renderedHeight, availableWidth);
         }
         else if (linesLeft == 0 && availableHeight < measured.MaxHeight)
         {
             renderedHeight = availableHeight;
-            rendered = CollapseItem(rendered, renderedHeight);
+            rendered = CollapseItem(rendered, renderedHeight, availableWidth);
         }
 
         // add color format
@@ -124,7 +137,7 @@ public class PagedListBox<T>
         pb.AddItem(measured.MaxWidth, measured.MaxHeight, renderedHeight, formatted, rendered);
     }
 
-    private static string CollapseItem(string item, int collapseHeight)
+    private static string CollapseItem(string item, int collapseHeight, int availableWidth)
     {
         var formatted =
             string.Join(
@@ -132,28 +145,29 @@ public class PagedListBox<T>
                 item
                     .ReplaceLineEndings("\n")
                     .Split('\n')
-                    .Take(collapseHeight));
+                    .Take(Math.Max(collapseHeight, 1)));
         if (formatted.Length >= 6)
             formatted = formatted[..^6];
-        // int placeToReplace = -1;
-        // var last = ' ';
-        // for (var i = 0; i < formatted.Length; ++i)
-        // {
-        //     if (last != ' ' && formatted[i] == ' ')
-        //     {
-        //         placeToReplace = i;
-        //     }
-        //     last = formatted[i];
-        // }
-        return formatted +
-               (formatted.EndsWith(" ") ? "" : " ") +
-               "[...]" +
-               Environment.NewLine;
+
+        // clear out full line
+        var lengthBeforeTrim = formatted.Length;
+        formatted = formatted.TrimEnd();
+        var trimmedLength = formatted.Length;
+
+        // add collapse hint before clearing out the rest of the line
+        formatted += " [...]";
+
+        if (lengthBeforeTrim > trimmedLength)
+        {
+            formatted += new string(' ', lengthBeforeTrim - trimmedLength);
+        }
+
+        return formatted + Environment.NewLine;
     }
 
     public void Print(int availableWidth, int availableHeight)
     {
-        if(Items == null || Items.Count < 1)
+        if (Items == null || Items.Count < 1)
         {
             return;
         }
@@ -165,6 +179,7 @@ public class PagedListBox<T>
         {
             return;
         }
+
         _maxPage = _pages.Count - 1;
 
         var page = _pages[_page];
@@ -176,7 +191,13 @@ public class PagedListBox<T>
 
         if (!HidePageNumberIfSinglePage || _maxPage > 0)
         {
-            var pageDisplay = $"Page {_page+1}/{_maxPage+1}";
+#if DEBUG
+            var pageDisplay =
+                $"Page {_page + 1}/{_maxPage + 1} ({page.Lines.Count}/{_pages.Sum(x => x.Lines.Count)} items, {page.TotalHeight} height, {Items.Count} items)";
+#else
+            var pageDisplay =
+                $"Page {_page + 1}/{_maxPage + 1}";
+#endif
             var clearOut = availableWidth - pageDisplay.Length;
             sb.Append(ColorGreen(pageDisplay));
             sb.Append(new string(' ', clearOut));
@@ -196,37 +217,40 @@ public class PagedListBox<T>
         if (lines < availableHeight)
         {
             // then write enough lines to clear out the missing lines as well
-            for(var aa = lines; aa < availableHeight; aa++)
+            for (var aa = lines; aa < availableHeight; aa++)
                 sb.AppendLine(new string(' ', availableWidth));
         }
+
         Console.Write(sb);
     }
 
     // separated from coloring to make it easier to render visible parts of lines
     private static string FormatSelected(string selectedLine) => $" >{selectedLine}";
 
-    private static string ColorGreen(string selectedLine) => 
+    private static string ColorGreen(string selectedLine) =>
         Terminal.Foreground(ForegroundColors.DarkGreen, selectedLine);
 
     public bool NextPage()
     {
         var change = _page != (_page = Math.Clamp(_page + 1, 0, Math.Max(0, _pages.Count - 1)));
-        if(change)
+        if (change)
         {
             var toSelect = _pages.Take(_page).Select(it => it.Lines.Count).Sum();
             _selected = toSelect;
         }
+
         return change;
     }
 
     public bool PreviousPage()
     {
         var change = _page != (_page = Math.Clamp(_page - 1, 0, Math.Max(0, _pages.Count - 1)));
-        if(change)
+        if (change)
         {
             var toSelect = _pages.Take(_page).Select(it => it.Lines.Count).Sum();
             _selected = toSelect;
         }
+
         return change;
     }
 
@@ -235,48 +259,52 @@ public class PagedListBox<T>
     {
         var changed = _selected != (_selected = Math.Clamp(_selected - 1, 0, Math.Max(0, Items.Count - 1)));
 
-        if(changed)
+        if (!changed)
         {
-            var accumulatedItems = 0;
-            for(var i = 0; i < _pages.Count; i++)
+            return changed;
+        }
+
+        var accumulatedItems = 0;
+        for (var i = 0; i < _pages.Count; i++)
+        {
+            accumulatedItems += _pages[i].Lines.Count;
+            if (accumulatedItems >= _selected + 1)
             {
-                accumulatedItems += _pages[i].Lines.Count - 1;
-                if(accumulatedItems >= _selected)
-                {
-                    _page = i;
-                    break;
-                }
+                _page = i;
+                break;
             }
         }
+
         return changed;
     }
 
     // TODO: rethink the selection code, feels like there is a much better way to do all this
     public bool SelectNext()
     {
-        // TODO: can't move to next page using j-k if there is only one item on the next page
-        
         var changed = _selected != (_selected = Math.Clamp(_selected + 1, 0, Math.Max(0, Items.Count - 1)));
-        
-        if(changed)
+
+        if (!changed)
         {
-            var accumulatedItems = 0;
-            for(var i = 0; i < _pages.Count; i++)
+            return changed;
+        }
+
+        var accumulatedItems = 0;
+        for (var i = 0; i < _pages.Count; i++)
+        {
+            accumulatedItems += _pages[i].Lines.Count;
+            if (accumulatedItems >= _selected + 1)
             {
-                accumulatedItems += _pages[i].Lines.Count - 1;
-                if(accumulatedItems >= _selected)
-                {
-                    _page = i;
-                    break;
-                }
+                _page = i;
+                break;
             }
         }
+
         return changed;
     }
 
     public bool SelectFirst()
     {
-        if(_pages.Count > 0)
+        if (_pages.Count > 0)
         {
             var toSelect = _pages.Take(_page).Select(it => it.Lines.Count).Sum();
             return _selected != (_selected = toSelect);
@@ -290,9 +318,9 @@ public class PagedListBox<T>
 
     public bool SelectLast()
     {
-        if(_pages.Count > 0)
+        if (_pages.Count > 0)
         {
-            var toSelect = 
+            var toSelect =
                 Math.Max(
                     0,
                     _pages.Take(_page + 1).Select(it => it.Lines.Count).Sum() - 1);

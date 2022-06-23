@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 using System;
 using System.Text;
 
@@ -43,15 +44,15 @@ public class HelpLine
 
     public void Print()
     {
-        if (_text.Length > Console.BufferWidth && !_expanded)
+        if (_text.Length > Console.WindowWidth && !_expanded)
         {
             PrintExpandHelp();
         }
-        else if (_text.Length > Console.BufferWidth && _expanded)
+        else if (_text.Length > Console.WindowWidth && _expanded)
         {
             var sb = new StringBuilder();
             Output.WriteLineWrapping(sb, _text, out _height);
-            Console.Write(Terminal.Color(Settings.Instance.Theme.HelpLine, sb.ToString()));
+            Console.Write(Settings.Instance.Theme.HelpLine.Apply(sb.ToString()));
             _height -= 1;
             // Output.WithForeground(ConsoleColor.Green, () => Output.WriteLineWrapping(_text, out _height));
             // _height -= 1;
@@ -59,25 +60,25 @@ public class HelpLine
         else
         {
             _height = 1;
-            Console.WriteLine(Terminal.Color(Settings.Instance.Theme.HelpLine, _text));
+            Console.WriteLine(Settings.Instance.Theme.HelpLine.Apply(_text));
             //Output.WithForeground(ConsoleColor.Green, () => Console.WriteLine(_text));
         }
     }
 
     private void PrintExpandHelp()
     {
-        if (EXPAND_TEXT.Length > Console.BufferWidth)
+        if (EXPAND_TEXT.Length > Console.WindowWidth)
         {
             var sb = new StringBuilder();
             Output.WriteLineWrapping(sb, SHORT_EXPAND_TEXT, out _height);
-            Console.Write(Terminal.Color(Settings.Instance.Theme.HelpLine, sb.ToString()));
+            Console.Write(Settings.Instance.Theme.HelpLine.Apply(sb.ToString()));
             // Output.WithForeground(ConsoleColor.Green, () => Output.WriteLineWrapping(SHORT_EXPAND_TEXT, out _height));
         }
         else
         {
             var sb = new StringBuilder();
             Output.WriteLineWrapping(sb, EXPAND_TEXT, out _height);
-            Console.Write(Terminal.Color(Settings.Instance.Theme.HelpLine, sb.ToString()));
+            Console.Write(Settings.Instance.Theme.HelpLine.Apply(sb.ToString()));
             // Output.WithForeground(ConsoleColor.Green, () => Output.WriteLineWrapping(EXPAND_TEXT, out _height));
         }
     }

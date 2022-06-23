@@ -17,6 +17,9 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace TodoHD;
@@ -45,37 +48,37 @@ public static class Output
     public static void WriteLineWrapping(string fullLine)
     {
         var sb = new StringBuilder();
-        _ = WriteLineWrapping(sb, fullLine, Console.BufferWidth);
+        _ = WriteLineWrapping(sb, fullLine, Console.WindowWidth);
         Console.Write(sb);
     }
-    
+
     /// <summary>
     /// Writes the result to the console.
     /// </summary>
     public static void WriteLineWrapping(string fullLine, out int lines)
     {
         var sb = new StringBuilder();
-        lines = WriteLineWrapping(sb, fullLine, Console.BufferWidth);
+        lines = WriteLineWrapping(sb, fullLine, Console.WindowWidth);
         Console.Write(sb);
     }
-    
+
     /// <summary>
     /// Writes the result to the given StringBuilder
     /// </summary>
     public static void WriteLineWrapping(StringBuilder sb, string fullLine, out int lines)
     {
-        lines = WriteLineWrapping(sb, fullLine, Console.BufferWidth);
+        lines = WriteLineWrapping(sb, fullLine, Console.WindowWidth);
     }
 
     /// <summary>
     /// Writes to a StringBuilder and returns the lines written
     /// </summary>
-    public static int WriteLineWrapping(StringBuilder sb, string fullLine, int bufferWidth)
+    public static int WriteLineWrapping(StringBuilder sb, string fullLine, int windowWidth)
     {
         var writtenOnThisItem = fullLine.Length;
         var newlines = fullLine.CountNewLines();
 
-        switch (writtenOnThisItem.CompareTo(bufferWidth))
+        switch (writtenOnThisItem.CompareTo(windowWidth))
         {
             case 0:
                 if (newlines < 1)
@@ -84,30 +87,30 @@ public static class Output
                     return 1;
                 }
 
-                WriteWithNewLines(sb, fullLine, bufferWidth);
+                WriteWithNewLines(sb, fullLine, windowWidth);
                 return newlines + 1;
             case < 0:
                 if (newlines < 1)
                 {
                     sb.Append(fullLine);
-                    sb.AppendLine(new string(' ', bufferWidth - writtenOnThisItem));
+                    sb.AppendLine(new string(' ', windowWidth - writtenOnThisItem));
                     return 1;
                 }
-                
-                WriteWithNewLines(sb, fullLine, bufferWidth);
+
+                WriteWithNewLines(sb, fullLine, windowWidth);
                 return newlines + 1;
             case > 0:
-                return newlines + WriteMultiline(sb, fullLine, bufferWidth);
+                return newlines + WriteMultiline(sb, fullLine, windowWidth);
         }
     }
 
-    private static void WriteWithNewLines(StringBuilder sb, string fullLine, int bufferWidth)
+    private static void WriteWithNewLines(StringBuilder sb, string fullLine, int windowWidth)
     {
         fullLine = fullLine.ReplaceLineEndings("\n");
         int x = 0, i = 0, max = fullLine.Length;
         for (; i < max; ++i, ++x)
         {
-            if (x == bufferWidth)
+            if (x == windowWidth)
             {
                 sb.AppendLine();
                 sb.Append(fullLine[i]);
@@ -120,7 +123,7 @@ public static class Output
                 case '\r':
                     continue;
                 case '\n':
-                    sb.Append(new string(' ', bufferWidth - x));
+                    sb.Append(new string(' ', windowWidth - x));
                     sb.Append(fullLine[i]);
                     x = 0;
                     continue;
@@ -139,24 +142,24 @@ public static class Output
     /// <summary>
     /// Writes to a StringBuilder and returns the lines written
     /// </summary>
-    public static int WriteMultiline(StringBuilder sb, string fullLine, int bufferWidth)
+    public static int WriteMultiline(StringBuilder sb, string fullLine, int windowWidth)
     {
         var fullLength = fullLine.Length;
         // split up in multiple lines
         var ii = 0;
         for (var writtenToSb = 0;
-            writtenToSb < fullLength;
-            ii++, writtenToSb += bufferWidth)
+             writtenToSb < fullLength;
+             ii++, writtenToSb += windowWidth)
         {
             var leftToWrite = fullLength - writtenToSb;
-            if (leftToWrite >= bufferWidth)
+            if (leftToWrite >= windowWidth)
             {
-                sb.AppendLine(fullLine[(ii * bufferWidth)..(ii * bufferWidth + bufferWidth)]);
+                sb.AppendLine(fullLine[(ii * windowWidth)..(ii * windowWidth + windowWidth)]);
             }
             else
             {
-                sb.Append(fullLine[(ii * bufferWidth)..(ii * bufferWidth + leftToWrite)]);
-                sb.AppendLine(new string(' ', bufferWidth - leftToWrite));
+                sb.Append(fullLine[(ii * windowWidth)..(ii * windowWidth + leftToWrite)]);
+                sb.AppendLine(new string(' ', windowWidth - leftToWrite));
             }
         }
 
@@ -164,40 +167,189 @@ public static class Output
     }
 
     /// <summary>
-    /// Writes to a StringBuilder and returns the max width and max height that was written
+    /// Writes a list and returns the lines written
     /// </summary>
-    public static (int MaxWidth, int MaxHeight) Measure(string fullLine, int bufferWidth)
+    public static (int LineCount, List<string> Lines) WriteLineWrappingList(string fullLine, int windowWidth)
     {
+        var fullLength = fullLine.Length;
+        var lines = 0;
+        var list = new List<string>();
+        var sb = new StringBuilder();
+
+        for (var i = 0; i < fullLength; i++)
+        {
+            var curChar = fullLine[i];
+            if (curChar == '\n')
+            {
+                lines++;
+                if (sb.Length == 0)
+                {
+                    list.Add(new string(' ', windowWidth));
+                }
+                else
+                {
+                    list.Add(sb.Append(new string(' ', windowWidth - sb.Length)).ToString());
+                    sb.Clear();
+                }
+            }
+            else if (curChar == '\r')
+            {
+                // skip
+            }
+            else
+            {
+                if (curChar == '\t')
+                {
+                    if (windowWidth - sb.Length > 0)
+                    {
+                        sb.Append(new string(' ', Math.Min(windowWidth - sb.Length, Terminal.TabWidth)));
+                    }
+                    else
+                    {
+                        Logger.LogAssertion(windowWidth - sb.Length > 0,
+                            $"WindowWidth - sb.Length = {windowWidth - sb.Length}");
+                    }
+                    // otherwise, skip, don't think it would make sense to write it on the next line
+                }
+                else
+                {
+                    sb.Append(curChar);
+                }
+
+                // TODO: needs to handle chars that take up more space than 1 column
+                // TODO: in all the calculations
+                // TODO: see if there are functions you can remove
+
+                if (sb.Length < windowWidth) continue;
+                lines++;
+                list.Add(sb.ToString());
+                sb.Clear();
+            }
+        }
+
+        if (sb.Length > 0)
+        {
+            lines++;
+            list.Add(sb.Append(new string(' ', windowWidth - sb.Length)).ToString());
+        }
+
+        if (list.Count > 1 && string.IsNullOrWhiteSpace(list[^1]))
+        {
+            list.RemoveAt(list.Count - 1);
+        }
+
+        if (list.Count == 0)
+        {
+            list.Add(new string(' ', windowWidth));
+            lines = 1;
+        }
+
+        return (lines, list);
+    }
+
+    /// <summary>
+    /// Returns the max width and total height that was measured.
+    /// </summary>
+    public static (int MaxWidth, int MaxHeight) Measure(string fullLine, int windowWidth)
+    {
+        return MeasureLinesWrappedNew(fullLine, windowWidth);
         var writtenOnThisItem = fullLine.Length;
         var newlines = fullLine.CountNewLines();
-        
-        return writtenOnThisItem.CompareTo(bufferWidth) switch
+
+        return writtenOnThisItem.CompareTo(windowWidth) switch
         {
-            0 => (bufferWidth, newlines + 1),
-            < 0 => (newlines > 0 ? bufferWidth : writtenOnThisItem, newlines + 1),
-            > 0 => (bufferWidth, newlines + MeasureLinesWrapped(fullLine, bufferWidth))
+            0 => (windowWidth, newlines + 1),
+            < 0 => (newlines > 0 ? windowWidth : writtenOnThisItem, newlines + 1),
+            > 0 => (windowWidth, newlines + MeasureLinesWrapped(fullLine, windowWidth))
         };
     }
 
-    public static int MeasureLinesWrapped(string fullLine, int bufferWidth)
+    /// <summary>
+    /// Writes a list and returns the lines written
+    /// </summary>
+    public static (int MaxWidth, int MaxHeight) MeasureLinesWrappedNew(string fullLine, int windowWidth)
+    {
+        var fullLength = fullLine.Length;
+        var MaxHeight = 0;
+        var MaxWidth = 0;
+        var charsOnLine = 0;
+
+        for (var i = 0; i < fullLength; i++)
+        {
+            var curChar = fullLine[i];
+            if (curChar == '\n')
+            {
+                if (i != fullLength - 1)
+                {
+                    MaxHeight++;
+                    MaxWidth = windowWidth;
+                    charsOnLine = 0;
+                }
+            }
+            else if (curChar == '\r')
+            {
+                // skip
+            }
+            else
+            {
+                if (curChar == '\t')
+                {
+                    if (windowWidth - charsOnLine > 0)
+                    {
+                        charsOnLine += Math.Min(windowWidth - charsOnLine, Terminal.TabWidth);
+                    }
+                    else
+                    {
+                        Logger.LogAssertion(windowWidth - charsOnLine > 0,
+                            $"WindowWidth - charsOnLine = {windowWidth - charsOnLine}");
+                    }
+                    // otherwise, skip, don't think it would make sense to write it on the next line
+                }
+                else
+                {
+                    charsOnLine += 1;
+                }
+                // TODO: needs to handle chars that take up more space than 1 column
+                // TODO: in all the calculations
+
+                if (charsOnLine < windowWidth) continue;
+                MaxHeight++;
+                MaxWidth = Math.Max(MaxWidth, charsOnLine);
+                charsOnLine = 0;
+            }
+        }
+
+        if (charsOnLine > 0)
+        {
+            MaxHeight++;
+            MaxWidth = windowWidth;
+        }
+
+        // assumes at least 1 line
+        return (MaxWidth, Math.Max(1, MaxHeight));
+    }
+
+    public static int MeasureLinesWrapped(string fullLine, int windowWidth)
     {
         var fullLength = fullLine.Length;
         // split up in multiple lines
         var ii = 0;
         for (var writtenToSb = 0;
-            writtenToSb < fullLength;
-            ii++, writtenToSb += bufferWidth) { }
-        // TODO: rewrite the above without a loop
-        // TODO: looks like it's just this:
-        /*
-         * ii = fullLength / bufferWidth
-         * if (ii * bufferWidth < fullLength)
-         * {
-         *     ii++;
-         * }
-         */
+             writtenToSb < fullLength;
+             ii++, writtenToSb += windowWidth)
+        {
+        }
 
         return ii + 1;
-    }
+        //Logger.LogDebug("lines with original algor = " + (ii + 1));
 
+//        var line = fullLength / WindowWidth;
+//        if (line * WindowWidth < fullLength)
+//        {
+//            line++;
+//        }
+//
+//        Logger.LogDebug("lines with new algor = " + line);
+//        return line;
+    }
 }

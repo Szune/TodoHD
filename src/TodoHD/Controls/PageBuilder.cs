@@ -22,7 +22,7 @@ using System.Linq;
 
 namespace TodoHD.Controls;
 
-public class PageBuilder : IDisposable
+public class PageBuilder
 {
     private readonly List<RenderedPage> _pages = new();
     private readonly int _width;
@@ -30,7 +30,7 @@ public class PageBuilder : IDisposable
 
     private List<RenderedLine> _currentPage = new();
     private int _currentPageHeight;
-    private bool _disposed;
+    private bool _built;
 
     public PageBuilder(int width, int height)
     {
@@ -46,9 +46,9 @@ public class PageBuilder : IDisposable
     public void AddItem(int maxWidth, int maxHeight, int renderedHeight, string rawText, string renderedText)
     {
         // TODO: rewrite this huge mess of if statements
-        if(_currentPageHeight + renderedHeight > _height)
+        if (_currentPageHeight + renderedHeight > _height)
         {
-            if(_currentPageHeight > 0) // if page is not empty
+            if (_currentPageHeight > 0) // if page is not empty
             {
                 // the item won't fit on current page, so create a new page
                 AddPage();
@@ -67,20 +67,17 @@ public class PageBuilder : IDisposable
                 AddPage();
             }
         }
+        else if (_currentPageHeight + renderedHeight == _height)
+        {
+            // fits perfectly, add item to page and start a new page
+            _currentPage.Add(new RenderedLine(maxWidth, maxHeight, renderedHeight, rawText, renderedText));
+            _currentPageHeight += renderedHeight;
+            AddPage();
+        }
         else
         {
-            if(_currentPageHeight + renderedHeight == _height)
-            {
-                // fits perfectly, add item to page and start a new page
-                _currentPage.Add(new RenderedLine(maxWidth, maxHeight, renderedHeight, rawText, renderedText));
-                _currentPageHeight += renderedHeight;
-                AddPage();
-            }
-            else
-            {
-                _currentPage.Add(new RenderedLine(maxWidth, maxHeight, renderedHeight, rawText, renderedText));
-                _currentPageHeight += renderedHeight;
-            }
+            _currentPage.Add(new RenderedLine(maxWidth, maxHeight, renderedHeight, rawText, renderedText));
+            _currentPageHeight += renderedHeight;
         }
     }
 
@@ -89,15 +86,18 @@ public class PageBuilder : IDisposable
     /// </summary>
     public List<RenderedPage> Build()
     {
-        if(_disposed)
+        if (_built)
         {
             throw new InvalidOperationException("Page has already been built.");
         }
-        _disposed = true;
-        if(_currentPage.Count > 0)
+
+        _built = true;
+        if (_currentPage.Count > 0)
         {
             AddPage();
         }
+
+        _currentPage = null;
         return _pages;
     }
 
@@ -114,17 +114,8 @@ public class PageBuilder : IDisposable
         _currentPage = new();
         _currentPageHeight = 0;
     }
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _disposed = true;
-            _currentPage = null;
-        }
-        GC.SuppressFinalize(this);
-    }
 }
+
 /// <summary>
 /// A rendered line in a list box.
 /// </summary>
@@ -135,7 +126,6 @@ public class PageBuilder : IDisposable
 /// <param name="RenderedText">The line with formatting applied (wrapping, state, color)</param>
 public record RenderedLine(int MaxWidth, int MaxHeight, int RenderedHeight, string RawText, string RenderedText);
 
-
 /// <summary>
 /// A rendered page in a list box.
 /// </summary>
@@ -144,4 +134,3 @@ public record RenderedLine(int MaxWidth, int MaxHeight, int RenderedHeight, stri
 /// <param name="RenderWidth">The width when the rendering was performed</param>
 /// <param name="RenderHeight">The height when the rendering was performed</param>
 public record RenderedPage(List<RenderedLine> Lines, int TotalHeight, int RenderWidth, int RenderHeight);
-
