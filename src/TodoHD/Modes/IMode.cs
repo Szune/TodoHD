@@ -1,6 +1,6 @@
 //
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
-// Copyright (C) 2021  Carl Erik Patrik Iwarson
+// Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -15,15 +15,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
-using System;
-using System.Collections.Generic;
 
-namespace TodoHD
+using System;
+
+namespace TodoHD.Modes;
+
+public interface IMode
 {
-    public interface IMode
-    {
-        void Init(Editor editor);
-        void PrintUI(Editor editor);
-        void KeyEvent(ConsoleKeyInfo key, Editor editor);
-    }
+    void Init(Editor editor);
+    void PrintUI(Editor editor);
+
+    void KeyEvent(ConsoleKeyInfo key, Editor editor);
+
+    bool OverrideQuit => false;
 }

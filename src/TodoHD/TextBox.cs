@@ -1,6 +1,6 @@
-﻿//
+//
 // TodoHD is a CLI tool/TUI to organize stuff you need to do.
-// Copyright (C) 2021  Carl Erik Patrik Iwarson
+// Copyright (C) 2022  Carl Erik Patrik Iwarson
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -16,28 +16,31 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 using System;
-using System.IO;
 
 namespace TodoHD
 {
-    class Program
+    public class EditString
     {
-        static void Main(string[] args)
+        /*
+         * multiple LinkedLists for insertion/deletion performance
+         * "jump lists"? (multiple smaller linkedlists connected through one main linkedlist)
+         */
+
+    }
+
+    public class TextBox
+    {
+        public string GetInput()
         {
-            string path;
-            if(args.Length == 1 && args[0] == ".")
+            var pos = Console.CursorTop;
+            Console.SetCursorPosition(0, pos);
+            
+            ConsoleKeyInfo read;
+            while((read = Console.ReadKey(true)).Key != ConsoleKey.Enter)
             {
-                path = "todohd.json";
+                
             }
-            else
-            {
-                path = Path.Combine(AppContext.BaseDirectory, "todohd.json");
-            }
-            Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
-            var editor = new Editor(path);
-            editor.Load();
-            editor.PushMode(new NormalMode());
-            editor.Start();
+            return "";
         }
     }
 }

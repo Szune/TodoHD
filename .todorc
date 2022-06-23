@@ -1,0 +1,23 @@
+### Available themes: Dark, Light
+### Color settings can be in the following forms:
+### Fg(ColorName)
+### Bg(ColorName)
+### Color(FgColorName, BgColorName)
+### Comments have to be placed at the beginning of a line
+
+# Trace is only enabled in debug builds for now, setting it to true in a release build does nothing interesting
+#Trace = True
+
+Theme = Light
+
+HelpModeHeader = Fg(DarkBlue)
+HelpModeText = Fg(Black)
+HelpModeKey = Color(White, DarkBlue)
+HelpLine = Fg(DarkGreen)
+TodoItemHeader = Fg(DarkRed)
+TodoItem = Fg(None)
+TodoItemSelected = Color(White, Blue)
+TodoItemUrgent = Color(Black, Yellow)
+TodoItemUrgentSelected = Color(White, Blue)
+StepCompleted = Color(Gray, DarkGray)
+StepCompletedSelected = Color(White, DarkGray)
