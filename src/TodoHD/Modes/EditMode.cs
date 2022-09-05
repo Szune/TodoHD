@@ -23,15 +23,16 @@ namespace TodoHD.Modes;
 
 public class EditMode : IMode
 {
-    private TodoItem _item;
+    private readonly TodoItem _item;
     private bool _changed;
     private string _tmpTitle;
     private string _tmpDescription;
     private Priority _tmpPriority;
     private readonly HelpLine _help;
 
-    public EditMode()
+    public EditMode(TodoItem item)
     {
+        _item = item ?? throw new ArgumentNullException(nameof(item));
         _help = new HelpLine("[T] Title [R] Description [P] Toggle Priority [S] Save [W] Write & Quit [Q] Quit");
     }
 
@@ -43,7 +44,6 @@ public class EditMode : IMode
 
     public void Init(Editor editor)
     {
-        _item = editor.GetSelectedItem();
         _tmpTitle = _item.Title;
         _tmpDescription = _item.Description;
         _tmpPriority = _item.Priority;

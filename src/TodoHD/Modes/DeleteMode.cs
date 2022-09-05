@@ -23,17 +23,23 @@ namespace TodoHD.Modes;
 
 public class DeleteMode : IMode
 {
+    private readonly TodoItem _item;
+
+    public DeleteMode(TodoItem item)
+    {
+        _item = item ?? throw new ArgumentNullException(nameof(item));
+    }
+
     public void Init(Editor editor)
     {
     }
 
     public void PrintUI(Editor editor)
     {
-        var item = editor.GetSelectedItem();
         Console.Clear();
-        Console.WriteLine($"== {item.Title} ==");
-        Console.WriteLine($"   <{item.Priority}>");
-        item
+        Console.WriteLine($"== {_item.Title} ==");
+        Console.WriteLine($"   <{_item.Priority}>");
+        _item
             .Description
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
             .ToList()
@@ -49,7 +55,7 @@ public class DeleteMode : IMode
         {
             if (string.Equals(it, "Y", StringComparison.OrdinalIgnoreCase))
             {
-                editor.DeleteItemById(item.Id);
+                editor.DeleteItemById(_item.Id);
             }
         });
         editor.PopMode();

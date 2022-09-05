@@ -133,7 +133,7 @@ public class ViewMode : IMode
                 _accumulator.Reset();
                 break;
             case ConsoleKey.E:
-                editor.PushMode(new EditMode());
+                editor.PushMode(new EditMode(_item));
                 _accumulator.Reset();
                 break;
             case ConsoleKey.G:
