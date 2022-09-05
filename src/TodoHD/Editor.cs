@@ -21,6 +21,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using SaferVariants;
 using TodoHD.Modes;
 
 namespace TodoHD;
@@ -111,14 +112,20 @@ public class Editor
     public int PageDisplay => Page + 1;
     public int MaxPageDisplay => MaxPage + 1;
 
-    public TodoItem GetSelectedItem()
+    private IOption<TodoItem> GetSelectedItem()
     {
-        return GetItems()
+        if (_items.Count < 1)
+        {
+            return Option.None<TodoItem>();
+        }
+
+        var selected = GetItems()
             .Skip(ItemsPerPage * Page)
             .Take(ItemsPerPage)
             .Select((item, index) => new { item, index })
             .First(it => Item == it.index)
             .item;
+        return Option.NoneIfNull(selected);
     }
 
     public IEnumerable<TodoItem> GetItemsByPriority(Priority priority)
@@ -257,7 +264,11 @@ public class Editor
 
     public bool MoveItemUp()
     {
-        var current = GetSelectedItem();
+        if (!GetSelectedItem().IsSome(out var current))
+        {
+            return false;
+        }
+
         if (MoveUp(current, GetItemsByPriority(current.Priority)))
         {
             PrevItem();
@@ -270,7 +281,11 @@ public class Editor
 
     public bool MoveItemDown()
     {
-        var current = GetSelectedItem();
+        if (!GetSelectedItem().IsSome(out var current))
+        {
+            return false;
+        }
+
         if (MoveDown(current, GetItemsByPriority(current.Priority)))
         {
             NextItem();

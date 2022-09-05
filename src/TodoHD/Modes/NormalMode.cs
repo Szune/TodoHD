@@ -169,28 +169,42 @@ public class NormalMode : IMode
         switch (key.Key)
         {
             case ConsoleKey.Enter:
+            {
                 if (_list.SelectedItem.IsSome(out var item))
                 {
                     editor.PushMode(new ViewMode(item));
                 }
 
                 _accumulator.Reset();
+            }
                 break;
             case ConsoleKey.I:
                 editor.PushMode(new InsertMode(), true);
                 _accumulator.Reset();
                 break;
             case ConsoleKey.E:
-                editor.PushMode(new EditMode());
+            {
+                if (_list.SelectedItem.IsSome(out var item))
+                {
+                    editor.PushMode(new EditMode(item));
+                }
+
                 _accumulator.Reset();
+            }
                 break;
             case ConsoleKey.H:
                 editor.PushMode(new HelpMode());
                 _accumulator.Reset();
                 break;
             case ConsoleKey.D:
-                editor.PushMode(new DeleteMode());
+            {
+                if (_list.SelectedItem.IsSome(out var item))
+                {
+                    editor.PushMode(new DeleteMode(item));
+                }
+
                 _accumulator.Reset();
+            }
                 break;
             case ConsoleKey.S:
                 ConfirmSave(editor);

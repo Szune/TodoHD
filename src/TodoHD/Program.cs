@@ -44,7 +44,15 @@ public class Program
             path = Path.Combine(AppContext.BaseDirectory, fileName);
         }
 
-        Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
+        if (OperatingSystem.IsWindows())
+        {
+            Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.Unicode;
+        }
+        else
+        {
+            Console.InputEncoding = Console.OutputEncoding = System.Text.Encoding.UTF8;
+        }
+
         Logger.Initialize(path);
         var editor = new Editor(path);
         editor.Load();
