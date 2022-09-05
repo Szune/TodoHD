@@ -204,10 +204,12 @@ public class ViewMode : IMode
                     }
                 });
                 break;
+            case ConsoleKey.Add:
             case ConsoleKey.OemPlus:
                 AddStep(editor);
                 _accumulator.Reset();
                 break;
+            case ConsoleKey.Subtract:
             case ConsoleKey.OemMinus:
                 DeleteStep(editor);
                 _accumulator.Reset();

@@ -96,7 +96,7 @@ public static class Input
                 case ConsoleKey.K or ConsoleKey.UpArrow when listBox.SelectPrevious():
                 case ConsoleKey.J or ConsoleKey.DownArrow when listBox.SelectNext():
                     Console.SetCursorPosition(0, stepStart);
-                    listBox.Print(Console.WindowWidth, Console.WindowHeight - stepStart - 1);
+                    listBox.Print(Console.WindowWidth, height);
                     break;
             }
         }
