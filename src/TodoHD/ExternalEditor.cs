@@ -34,12 +34,13 @@ public class ExternalEditor
         _initialText = initialText;
     }
 
-    public IOption<string> Edit(bool hideCursorAfterwards = true)
+    public IOption<string> Edit(bool hideCursorAfterwards = true, bool allowInitialText = false)
     {
         if (_editor == null)
         {
             return Option.None<string>();
         }
+
         var tempFilePath = GetTempFile();
         // write initial text to edit
         File.WriteAllText(tempFilePath, _initialText);
@@ -68,9 +69,9 @@ public class ExternalEditor
             var editedText = File.ReadAllText(tempFilePath);
             File.Delete(tempFilePath); // note: if adding extension to temp file later, 
             // we should remove the original temp file as well as the one with the extension, to reduce clutter
-            
-            
-            return string.Equals(editedText, _initialText) 
+
+
+            return string.Equals(editedText, _initialText) && !allowInitialText
                 ? Option.None<string>() // no edit
                 : Option.Some(editedText);
         }
@@ -90,7 +91,7 @@ public class ExternalEditor
         // note that you will have to loop until you are sure you have a unique file,
         // as currently that is handled by `GetTempFileName`
         // also note that files and directories cannot have the same name on unix, so take that into account
-        
+
         return path;
     }
 
@@ -101,5 +102,4 @@ public class ExternalEditor
             ? editor
             : Environment.GetEnvironmentVariable("EDITOR");
     }
-
 }

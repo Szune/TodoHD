@@ -168,6 +168,16 @@ public class NormalMode : IMode
     {
         switch (key.Key)
         {
+            case ConsoleKey.OemPeriod:
+            {
+                if (key.Modifiers != ConsoleModifiers.Shift)
+                {
+                    return;
+                }
+
+                HandleCommand(editor);
+            }
+                break;
             case ConsoleKey.Enter:
             {
                 if (_list.SelectedItem.IsSome(out var item))
@@ -310,6 +320,109 @@ public class NormalMode : IMode
             default:
                 _accumulator.Reset();
                 break;
+        }
+    }
+
+    private void HandleCommand(Editor editor)
+    {
+        Console.SetCursorPosition(0, Console.WindowHeight - 1);
+
+        Console.Write(":");
+        var text = Console.ReadLine();
+        switch (text)
+        {
+            case "editBeta":
+            {
+                if (_list.SelectedItem.IsSome(out var item))
+                {
+                    var editStep = TodoSerializer.Serialize(item);
+
+                    new ExternalEditor(editStep)
+                        .Edit(allowInitialText: true)
+                        .HandleNone(() =>
+                        {
+                            editor.PushMode(new FloatingBoxMode("Nothing changed", Console.WindowWidth,
+                                Console.WindowHeight / 3));
+                        })
+                        .Then(edited =>
+                        {
+                            var deserialized = TodoSerializer.Deserialize(edited);
+                            deserialized
+                                .HandleError(err =>
+                                    editor.PushMode(new FloatingBoxMode(err.Message, Console.WindowWidth,
+                                        Console.WindowHeight / 3)))
+                                .Then(editedItem =>
+                                {
+                                    editor.PushMode(new ConfirmMode("Save changes?",
+                                        () =>
+                                        {
+                                            item.Title = editedItem.Title;
+                                            item.Description = editedItem.Description;
+                                            item.Steps = editedItem.Steps;
+                                            editor.Save();
+                                        }), skipPrint: true);
+                                    editor.PushMode(new ViewMode(editedItem));
+                                });
+                            editor.Refresh();
+                        });
+                }
+
+                break;
+            }
+            case "insertBeta":
+            {
+                var exampleStep = TodoSerializer.Serialize(
+                    new TodoItem(1, 1, "Title", "Description", "", Priority.Whenever)
+                    {
+                        Steps = new List<TodoStep>
+                        {
+                            new()
+                            {
+                                Text = "Step 1"
+                            },
+                            new()
+                            {
+                                Active = true,
+                                Text = "Step 2 Active"
+                            },
+                            new()
+                            {
+                                Completed = true,
+                                Text = "Step 3 Completed"
+                            }
+                        }
+                    });
+
+                new ExternalEditor(exampleStep)
+                    .Edit(allowInitialText: true)
+                    .HandleNone(() =>
+                    {
+                        editor.PushMode(new FloatingBoxMode("Nothing changed", Console.WindowWidth,
+                            Console.WindowHeight / 3));
+                    })
+                    .Then(edited =>
+                    {
+                        var deserialized = TodoSerializer.Deserialize(edited);
+                        deserialized
+                            .HandleError(err =>
+                                editor.PushMode(new FloatingBoxMode(err.Message, Console.WindowWidth,
+                                    Console.WindowHeight / 3)))
+                            .Then(newItem =>
+                            {
+                                editor.InsertItem(newItem);
+                                editor.Save();
+                            });
+                        editor.Refresh();
+                    });
+                break;
+            }
+            default:
+            {
+                editor.PushMode(new FloatingBoxMode("Only :editBeta, :insertBeta exists at this time",
+                    Console.WindowWidth,
+                    Console.WindowHeight / 3));
+                break;
+            }
         }
     }
 

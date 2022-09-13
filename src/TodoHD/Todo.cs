@@ -29,7 +29,11 @@ public enum Priority
 
 public class TodoStep : IHaveOrder
 {
+    /// <summary>
+    /// 1-based order.
+    /// </summary>
     public int Order { get; set; }
+
     public string Text { get; set; }
     public bool Completed { get; set; }
     public bool Active { get; set; }
@@ -57,7 +61,7 @@ public class TodoItem : IHaveOrder
     public string Description { get; set; }
     public string Category { get; set; }
     public Priority Priority { get; set; }
-    public List<TodoStep> Steps { get; set; }
+    public List<TodoStep> Steps { get; set; } = new List<TodoStep>();
 }
 
 public class Todo

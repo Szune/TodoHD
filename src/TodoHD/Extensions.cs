@@ -17,6 +17,8 @@
 //
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using SaferVariants;
 
@@ -24,6 +26,20 @@ namespace TodoHD;
 
 public static class Extensions
 {
+    public static IEnumerable<string> Lines(this string s)
+    {
+        if (s == null)
+        {
+            throw new ArgumentNullException(nameof(s));
+        }
+
+        using var sr = new StringReader(s);
+        while (sr.ReadLine() is string line)
+        {
+            yield return line;
+        }
+    }
+
     public static int OccurrencesOf(this string s, char toFind)
     {
         var count = 0;
@@ -36,19 +52,9 @@ public static class Extensions
     public static int CountNewLines(this string s)
         => s.OccurrencesOf('\n');
 
-    public static string ExceptEndingNewline(this string s)
+    public static string ExceptEndingNewlines(this string s)
     {
-        if (s.Length < 1)
-            return s;
-
-        if (s[^1] == '\n')
-        {
-            return s.Length == 1
-                ? ""
-                : s[..^2];
-        }
-
-        return s;
+        return s.TrimEnd('\n');
     }
 
     public static StringBuilder ExceptEndingNewline(this StringBuilder sb)

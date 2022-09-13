@@ -181,11 +181,14 @@ public class Editor
         _modes.Peek().PrintUI(this);
     }
 
-    public void PushMode(IMode mode, bool immediate = false)
+    public void PushMode(IMode mode, bool immediate = false, bool skipPrint = false)
     {
         _modes.Push(mode);
-        InitCurrent();
-        PrintCurrent();
+        if (!skipPrint)
+        {
+            InitCurrent();
+            PrintCurrent();
+        }
 
         if (immediate)
         {
@@ -443,6 +446,12 @@ public class Editor
         FullUpdateCurrent();
     }
 
+    public void Refresh()
+    {
+        InitCurrent();
+        PrintCurrent();
+    }
+
     public void Start()
     {
         // TODO: the issue that I have to fix in cmd.exe is that after printing out the UI,
@@ -467,13 +476,11 @@ public class Editor
                     return;
                 }
 
-                InitCurrent();
-                PrintCurrent();
+                Refresh();
             }
             else if (key.Key == ConsoleKey.F5)
             {
-                InitCurrent();
-                PrintCurrent();
+                Refresh();
             }
 #if DEBUG
             else if (key.Key == ConsoleKey.F9)
@@ -503,7 +510,7 @@ public class Editor
             acc.AddRange(item.Steps
                 .Where(step => step.Text.Contains(text, StringComparison.InvariantCultureIgnoreCase))
                 .Select(step =>
-                    new SelectItem<TodoItem>($"Step (in '{item.Title}'): {step.Text.ExceptEndingNewline()}", item)));
+                    new SelectItem<TodoItem>($"Step (in '{item.Title}'): {step.Text.ExceptEndingNewlines()}", item)));
             return acc;
         });
     }

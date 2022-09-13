@@ -52,7 +52,7 @@ public class CollapsibleTextBlock
         var text =
             CollapseLines(
                 _text
-                    .ExceptEndingNewline()
+                    .ExceptEndingNewlines()
                     .ReplaceLineEndings("\n")
                     .Split('\n')
                     .SelectMany(line =>
@@ -91,6 +91,6 @@ public class CollapsibleTextBlock
             formatted += new string(' ', lengthBeforeTrim - trimmedLength);
         }
 
-        return formatted + Environment.NewLine;
+        return formatted;
     }
 }

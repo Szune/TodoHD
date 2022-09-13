@@ -75,7 +75,7 @@ public class EditMode : IMode
         }
 
         _tmpDescription
-            .ExceptEndingNewline()
+            .ExceptEndingNewlines()
             .ReplaceLineEndings("\n")
             .Split('\n')
             .ToList()

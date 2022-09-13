@@ -86,14 +86,14 @@ public class Program
             Console.WriteLine($"> {item.Title}");
             if (!string.IsNullOrWhiteSpace(item.Description))
             {
-                Console.WriteLine($"| {item.Description.ExceptEndingNewline()}");
+                Console.WriteLine($"| {item.Description.ExceptEndingNewlines()}");
             }
 
             Console.WriteLine(string.Join("\r\n",
                 item
                     .Steps
                     .Select(step =>
-                        $"[{(step.Completed ? 'x' : step.Active ? 'o' : ' ')}] {step.Text.ExceptEndingNewline()}")));
+                        $"[{(step.Completed ? 'x' : step.Active ? 'o' : ' ')}] {step.Text.ExceptEndingNewlines()}")));
             return 0;
         }
 

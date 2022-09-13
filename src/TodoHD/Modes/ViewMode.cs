@@ -95,8 +95,11 @@ public class ViewMode : IMode
             availableHeight /= 3;
         }
 
-        var textBlock = new CollapsibleTextBlock(_item.Description);
-        textBlock.Print(Console.WindowWidth, availableHeight);
+        if (!string.IsNullOrWhiteSpace(_item.Description))
+        {
+            var textBlock = new CollapsibleTextBlock(_item.Description);
+            textBlock.Print(Console.WindowWidth, availableHeight);
+        }
 
         Console.WriteLine();
 #if DEBUG
